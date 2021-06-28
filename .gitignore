@@ -1,2 +1,5 @@
 300_data_processed
 100_data_raw/
+src/__pycache__/*
+src/reasonabledf.csv
+src/resonabledf.csv

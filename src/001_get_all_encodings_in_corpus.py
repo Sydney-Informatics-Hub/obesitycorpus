@@ -2,17 +2,16 @@ import os
 import pathlib
 import chardet
 import pandas as pd
-from pathlib import Path
-# this is my personal file with common variables
-# from commonvars import path
-path = "/Users/darya/DropboxSydneyUni/Projects/pipe-1951-obesity/data/raw/Australian Obesity Corpus/"
+from utils import get_project_root
 
+projectroot = str(get_project_root()) 
+datapath = projectroot + "/100_data_raw/Australian Obesity Corpus/"
 
 
 listoffiles = []
 
-for path, subdirs, files in os.walk(path):
-    [listoffiles.append(str(pathlib.PurePath(path, name))) for name in files]
+for path, subdirs, files in os.walk(datapath):
+    [listoffiles.append(str(pathlib.PurePath(path, name).relative_to(datapath))) for name in files]
 
 # make sure we're only looking at the txt files and not zips etc
 excludedfiles = [filename for filename in listoffiles if filename[-3:] != "txt"]
@@ -21,15 +20,18 @@ for i in excludedfiles:
 
 listoffiles = [filename for filename in listoffiles if filename[-3:] == "txt"]
 
+
+
 encodingtypes = []
 confidence = []
 for file in listoffiles:
-    with open(file, 'rb') as detect_file_encoding:
+    with open(str(datapath + file), 'rb') as detect_file_encoding:
         detection = chardet.detect(detect_file_encoding.read())
         encodingtypes.append(detection['encoding'])
         confidence.append(detection['confidence'])
 
 dataformats = pd.DataFrame(list(zip(listoffiles, encodingtypes,confidence)),
-               columns =['Filename', 'Encoding', 'Confidence'])
-dataformats.to_csv("inferred_dataset_encodings.csv")
-print(dataformats['Encoding'].value_counts())
+               columns =['filename', 'encoding', 'confidence'])
+
+dataformats.to_csv(str(projectroot + "/300_data_processed/" +  "inferred_dataset_encodings.csv"))
+print(dataformats['encoding'].value_counts())
