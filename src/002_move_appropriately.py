@@ -25,10 +25,10 @@ filesdf['contents'] = result
 # these are the list files and the zip file
 filesdf = filesdf[filesdf['contents'].str.contains('body', case = False)]
 
-filesdf['contents_split'] =  filesdf['contents'].str.split("\n\n\n")
-filesdf['contents_len'] = filesdf['contents_split'].str.len()
-
-
+# split header and body, thankfully case-senstive works
+filesdf['contents_split'] =  filesdf['contents'].str.split("\nBody\n")
+# always split into two
+# filesdf['contents_len'] = filesdf['contents_split'].str.len()
 
 # get date/month from the relevant directory of the filepath
 filesdf = filesdf.assign(relevant_column = filesdf['filename'].map(lambda x: x.split('/')[2].split("_")))
@@ -42,11 +42,9 @@ filesdf['short_month'] = filesdf['month'].map(lambda x: f.convert_month(x))
 # where are the bylines?
 filesdf = filesdf.assign(byline_locs = filesdf['contents_split'].map(lambda x: f.where_is_byline(x)))
 
-# where is the keyword body?
-filesdf = filesdf.assign(body_loc = filesdf['contents_split'].map(lambda x: f.where_is_body(x)))
 
 
-filesdf.to_csv("resonabledf.csv")
+#filesdf.to_csv("resonabledf.csv")
 
 
 

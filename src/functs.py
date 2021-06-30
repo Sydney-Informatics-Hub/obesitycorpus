@@ -33,8 +33,19 @@ def where_is_byline(contentslist):
     return([i for i, x in enumerate(tmplist) if x != -1])
 
 def where_is_body(contentslist):
-    tmplist = [x.lower().find('body') for x in contentslist]
-    return([i for i, x in enumerate(tmplist) if x != -1])
+    if isinstance(contentslist, list):
+        if len(contentslist) == 0:
+            raise ValueError("Your contents list is empty. Please filer out before processing.")
+        elif isinstance(contentslist[0], str):
+            # this is appropriate data
+            # the last characters of the list are "body"
+            return([i for i, x in enumerate(contentslist) if x.lower()[-4:] == "body"])
+        else:
+            raise TypeError("The elements of your list need to be a string; ", 
+            type(contentslist[0]), " provided instead.")
+    else:
+        raise ValueError("Your contents need to be provided as a list; ", 
+        type(contentslist), " provided instead")
 
 
         
