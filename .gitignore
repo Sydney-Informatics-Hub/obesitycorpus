@@ -1,3 +1,11 @@
 300_data_processed
 100_data_raw/
 200_data_clean
+
+*.pickle
+
+src/resonabledf.csv
+
+*.pkl
+
+src/__pycache__/
