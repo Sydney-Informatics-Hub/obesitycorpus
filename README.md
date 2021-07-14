@@ -19,3 +19,9 @@ grep -Lri "body" .
 # ./Hobart Mercury/HobMercury_2008/HobMercury_2008_Junetxt/0001txt/HobMercury (1).txt
 # ./Hobart Mercury/HobMercury_2008/HobMercury_2008_Julytxt/0001txt/HobMercury (1).txt
 ```
+
+2. Can split by `\nBody\n`
+
+3. Byline is meaningful only in the first chunk of text, in the second it occurs only twice, when mentioned as actual byline-chasin journalists and journalistic byline. So we can extract them by collecting only the first match of byline in the text.
+
+3. 
