@@ -4,6 +4,12 @@ import re
 import spacy
 from spacy.tokens import Span
 
+def obesitylist(*args):
+    mylist = ['obesity', 'obese', "obesogenic", "obesogen"]
+    for x in args:
+        mylist.append(x)
+    return(mylist)
+
 def readfilesin(file_path, encoding):
     if encoding in ['ascii', 'Windows-1252', 'ISO-8859-1']:
         with open(file_path, encoding='Windows-1252') as file:
@@ -56,8 +62,44 @@ def cleantitler(s):
     s = s[:200] if len(s) > 200 else s
     return(s)
 
+# to clean the corpus - cleaning symbols in messy bodies
 
-def explore_tokens(sentencenlp_list):
+def mystringreplace(string, replacementobject):
+    if string is None:
+        return(None)
+    elif isinstance(replacementobject, list):
+        for word in replacementobject:
+            string = string.replace(word, " ")
+        return(string)
+    else:
+        for word, replacement in replacementobject.items():
+            string = string.replace(word, replacement)
+        return(string)
+
+
+def find_problems(start, end, colname = "cleaned_bodies"):
+    # finding problematic sentences
+    return([item for sublist in [re.findall(r'\w+.[^\x00-\x7F].+',x) for x in filesdf[colname].tolist()[start:end]]  for item in sublist])
+
+def find_specific_character_with_preceding(character, start, end, colname = "cleaned_bodies"):
+    # finding a specific character with the preceding characters
+    pattern = r'\w+.' + character + str('+.*')
+    return([item for sublist in [re.findall(pattern,x) for x in filesdf[colname].tolist()[start:end]]  for item in sublist])
+
+def find_specific_character_wout_preceding(character, start, end, colname = "cleaned_bodies"):
+    # finding a specific character where that character starts a word
+    pattern = r'' + character + str('+.*')
+    return([item for sublist in [re.findall(pattern,x) for x in filesdf[colname].tolist()[start:end]]  for item in sublist])
+
+def find_filename_from_string(string):
+    return(filesdf[filesdf['body'].str.contains(string)]['filename'].to_list())
+
+def print_body_from_string(string):
+    return(filesdf[filesdf['body'].str.contains(string)]['body'].to_list())
+
+# Related to SPACY ------------------
+
+def explore_tokens(sentencenlp_list, obesitynames):
     sentencesummarylist = []
     for sentence in sentencenlp_list:
         # displacy.serve(sentence, style="dep")
@@ -75,90 +117,3 @@ def explore_tokens(sentencenlp_list):
         sentencesummarylist.append(tokensummarylist)
     return(sentencesummarylist)
 
-
-
-byline_replacementlist = [
-    "Exclusive ",
- " And ",
-  # jobs
- "National",
- "Correspondent",
- "Political",
- "Health " ,
- "Political",
- "Education" ,
- "Commentator",
- "Regional",
- "Agencies",
- "Defence",
- "Fashion",
- "Music",
- "Social Issues",
- "Reporter",
- "Chief",
- "Business",
- "Workplace",
- "Editor",
- "Indulge",
- "Science",
- "Sunday",
- "Saturdays",
- "Writer",
- "Food ",
- "Dr ",
- "Professor ",
-
- # cities,
- "Las Vegas",
- "Melbourne",
- "Canberra",
- "Brisbane",
- "Sydney",
- "Perth",
- "Adelaide",
- "Chicago",
- "Daily Mail, London" ,
- "London Correspondent",
- "London Daily Mail",
- "Buenos Aires" ,
- "New York",
- "New Delhi",
- "London",
- ", Washington",
- "Beijing",
- "Health",
- # random stuff
- "State ",
- "Council On The Ageing",
- "Words ",
- "Text",
- "By ",
- "With ",
- " In ",
- " - ",
- ":",
- "Proprietor Realise Personal Training Company",
- "B+S Nutritionist",
- "My Week",
- "Medical",
- "Manufacturing",
- "Brought To You",
- "Film ",
- "Reviews ",
- "Comment",
- "Personal",
- "Finance",
- "Natural ",
- "Solutions ",
- "Special ",
- "Report ",
- "Recipe ",
- "Photography ",
- "Photo",
- "-At-Large",
- "Styling ",
- "Preparation ",
- # individual,
- " - Ian Rose Is A Melbourne Writer." ,
- "Cycling Promotion Fund Policy Adviser ",
- ". Dannielle Miller Is The Head Of Enlighten Education. Enlighten Works With Teenage Girls In High Schools On Developing A Positive Self-Esteem And Healthy Body Image." ]

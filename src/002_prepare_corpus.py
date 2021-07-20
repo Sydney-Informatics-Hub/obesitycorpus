@@ -55,51 +55,30 @@ filesdf = filesdf.assign(byline = filesdf['metadata'].map(lambda x: f.get_byline
 # lots of room to clean bylines if needed/desired...
 
 # clean up unicode in body
-messybodies = filesdf[filesdf.encoding != "ascii"].body.tolist()
+filesdf['cleaned_bodies']=filesdf.body
 
 
-# this results in an empty set
+# the below results in an empty set
 # asciibodies = filesdf[filesdf.encoding == "ascii"].body.tolist()
 # set([item for sublist in [re.findall(r'[^\x00-\x7F]+',x) for x in asciibodies]  for item in sublist])
 
-#MOVE LATER
-def mystringreplace(string, replacementobject):
-    if string is None:
-        return(None)
-    elif isinstance(replacementobject, list):
-        for word in replacementobject:
-            string = string.replace(word, " ")
-        return(string)
-    else:
-        for word, replacement in replacementobject.items():
-            string = string.replace(word, replacement)
-        return(string)
+replacementdictionary = {"Â\xad": "' ", "~\xad" : "-", "\\xE2Ä(tm)":"'", "\\xE2Äú":"\"",\
+     "\\xE2Ä\"": "-","\xE2Äò": "\"", "\\xE2€(tm)":"'", "\\xE2€": "'"}
+replacementdictionary.update(pd.read_csv("replacements.csv",quotechar="'", escapechar="\\",\
+    keep_default_na=False).set_index('word')['replacement'].to_dict())
 
+filesdf = filesdf.assign(cleaned_bodies = filesdf['cleaned_bodies'].map(lambda x: f.mystringreplace(x, replacementdictionary)))
 
-
-
-replacementdictionary = pd.read_csv("replacements.csv",quotechar="'", escapechar="\\").set_index('word')['replacement'].to_dict()
-# the below breaks when loading from files
-replacementdictionary["Â\xad"] = " "
-replacementdictionary["~\xad"] = "-"
-
-messybodies = [mystringreplace(x, replacementdictionary) for x in messybodies]
-
-[item for sublist in [re.findall(r'\w+.[^\x00-\x7F].+',x) for x in messybodies[1100:1125]]  for item in sublist]
+# can use the below functions to narrow down issues ---
+# f.find_problems(start, end, colname = "cleaned_bodies")
+# f.find_specific_character_with_preceding(character, start, end, colname = "cleaned_bodies")
+# f.find_specific_character_wout_preceding(character, start, end, colname = "cleaned_bodies")
+# f.find_filename_from_string(string)
+# f.print_body_from_string(string)
 
 # this needs to happen after the replacement dictionary replacement as it will
-# automatically incorrectly replace all non-ascii charachters
-messybodies = [unidecode(x) for x in messybodies]
-
-
-
-# filesdf.byline[19000:20100].apply(lambda x: mystringreplace(x, byline_replacementlist)).value_counts()
-
-# [getweird(element, index) for index, element in enumerate(allbodies)]
-
-# re.findall(r'[a-zA-Z]*[^\x00-\x7F][a-zA-Z]*',messybodies[1])
-# re.findall(r'[^\x00-\x7F]+',messybodies[0])""
-# set([item for sublist in [re.findall(r'[^\x00-\x7F]+',x) for x in messybodies]  for item in sublist])
+# automatically incorrectly replace all non-ascii characters
+filesdf = filesdf.assign(cleaned_bodies = filesdf['cleaned_bodies'].map(lambda x: unidecode(x)))
 
 # write corpus out as per client's request
 filesdf['outputfilename'] = str("../200_data_clean/corpus/") +  filesdf['source'] + "_" + \
