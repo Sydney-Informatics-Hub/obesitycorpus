@@ -3,7 +3,6 @@
 src/__pycache__/*
 src/reasonabledf.csv
 src/resonabledf.csv
-.Rproj.user
-200_data_clean/
-*pkl
-*pickle
+200_data_clean
+*.pickle
+*.pkl
