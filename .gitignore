@@ -6,3 +6,4 @@ src/resonabledf.csv
 200_data_clean
 *.pickle
 *.pkl
+.vscode
