@@ -34,13 +34,12 @@ def single_word_tokensummary(articlesummary, word):
             heads.append(x[0]['head'])
             left.append(x[0]['left'])
             right.append(x[0]['right'])
-    return({
+    return {
         'tag': taglist, 
         'dep': dep,
         'heads': heads,
         'left': left,
         'right': right}
-    )
 
 tmp2 = tmp.copy()[['outputfilename', 'year','short_month','title', 'byline', 'articlesummary']]
 tmp2['file'] = tmp2['outputfilename'].str.replace('../200_data_clean/', '', regex=False).str.replace('.txt', '', regex=False)

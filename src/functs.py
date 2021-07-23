@@ -8,7 +8,7 @@ def obesitylist(*args):
     mylist = ['obesity', 'obese', "obesogenic", "obesogen"]
     for x in args:
         mylist.append(x)
-    return(mylist)
+    return mylist
 
 def readfilesin(file_path, encoding):
     if encoding in ['ascii', 'Windows-1252', 'ISO-8859-1']:
@@ -25,7 +25,7 @@ def readfilesin(file_path, encoding):
                 data = dammit.unicode_markup
         except Exception as e:
             raise ValueError('Can\'t return dictionary from empty or invalid file %s due to %s' % (file_path, e))
-    return(data.replace("\r", "").replace("\nClassification\n\n\n", "").strip())
+    return data.replace("\r", "").replace("\nClassification\n\n\n", "").strip()
 
 def convert_month(month):
     if month in ["Jan", "Feb", "Mar", "Apr", "May", 
@@ -39,7 +39,7 @@ def convert_month(month):
 
 def where_is_byline(contentslist):
     tmplist = [x.lower().find('byline') for x in contentslist]
-    return([i for i, x in enumerate(tmplist) if x != -1])
+    return [i for i, x in enumerate(tmplist) if x != -1]
 
 def get_byline(contents):
     byline_withnewline = re.search('Byline: (.*)\n', contents, re.IGNORECASE)
@@ -60,42 +60,42 @@ def cleantitler(s):
     s = re.sub(r"\s+", '-', s)
     # truncate ultra-long titles
     s = s[:200] if len(s) > 200 else s
-    return(s)
+    return s
 
 # to clean the corpus - cleaning symbols in messy bodies
 
 def mystringreplace(string, replacementobject):
     if string is None:
-        return(None)
+        return None
     elif isinstance(replacementobject, list):
         for word in replacementobject:
             string = string.replace(word, " ")
-        return(string)
+        return string
     else:
         for word, replacement in replacementobject.items():
             string = string.replace(word, replacement)
-        return(string)
+        return string
 
 
 def find_problems(start, end, colname = "cleaned_bodies"):
     # finding problematic sentences
-    return([item for sublist in [re.findall(r'\w+.[^\x00-\x7F].+',x) for x in filesdf[colname].tolist()[start:end]]  for item in sublist])
+    return [item for sublist in [re.findall(r'\w+.[^\x00-\x7F].+',x) for x in filesdf[colname].tolist()[start:end]]  for item in sublist]
 
 def find_specific_character_with_preceding(character, start, end, colname = "cleaned_bodies"):
     # finding a specific character with the preceding characters
     pattern = r'\w+.' + character + str('+.*')
-    return([item for sublist in [re.findall(pattern,x) for x in filesdf[colname].tolist()[start:end]]  for item in sublist])
+    return [item for sublist in [re.findall(pattern,x) for x in filesdf[colname].tolist()[start:end]]  for item in sublist]
 
 def find_specific_character_wout_preceding(character, start, end, colname = "cleaned_bodies"):
     # finding a specific character where that character starts a word
     pattern = r'' + character + str('+.*')
-    return([item for sublist in [re.findall(pattern,x) for x in filesdf[colname].tolist()[start:end]]  for item in sublist])
+    return [item for sublist in [re.findall(pattern,x) for x in filesdf[colname].tolist()[start:end]]  for item in sublist]
 
 def find_filename_from_string(string):
-    return(filesdf[filesdf['body'].str.contains(string)]['filename'].to_list())
+    return filesdf[filesdf['body'].str.contains(string)]['filename'].to_list()
 
 def print_body_from_string(string):
-    return(filesdf[filesdf['body'].str.contains(string)]['body'].to_list())
+    return filesdf[filesdf['body'].str.contains(string)]['body'].to_list()
 
 # Related to SPACY ------------------
 
@@ -115,5 +115,5 @@ def explore_tokens(sentencenlp_list, obesitynames):
                     'right': token.right_edge}
                 tokensummarylist.append(mydict)
         sentencesummarylist.append(tokensummarylist)
-    return(sentencesummarylist)
+    return sentencesummarylist
 
