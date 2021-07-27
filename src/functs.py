@@ -3,6 +3,8 @@ from bs4 import UnicodeDammit
 import re
 import spacy
 from spacy.tokens import Span
+import pandas as pd
+from unidecode import unidecode
 
 def obesitylist(*args):
     mylist = ['obesity', 'obese', "obesogenic", "obesogen"]
@@ -53,7 +55,60 @@ def get_byline(contents):
     else:
         return None
 
-def cleantitler(s):
+def parse_filename(path):
+    source, year, month = path.split('/')[2].split("_")
+    month = month.replace("txt", "").strip()
+    numeric_month = convert_month(month)
+    return pd.Series({
+        "source": source,
+        "year": year,
+        "numeric_month": numeric_month
+    })
+
+def get_text4digitcode(contents):
+    code4digits = re.search(r'(\d+)txt', contents, re.IGNORECASE)
+    if code4digits:
+        return code4digits.group(1)
+    else:
+        # some articles from the Age and Brisbane Times have (1) (2) etc numeration instead
+        # extract and pad these to four digits to make consistent
+        codeXdigits = re.search(r'\((\d+)\)\.txt', contents,re.IGNORECASE).group(1).zfill(4)
+        return codeXdigits
+
+def clean_nonascii(body, replacementcsvfile = "replacements.csv"):
+    '''
+    Removes non-unicode characters in bodies stored one per row in column of pandas df
+    '''   
+    # load in replacement dictionary
+    replacementdictionary = {"Â\xad": "' ", "~\xad" : "-", "\\xE2Ä(tm)":"'", "\\xE2Äú":"\"",\
+     "\\xE2Ä\"": "-","\xE2Äò": "\"", "\\xE2€(tm)":"'", "\\xE2€": "'"}
+    replacementdictionary.update(pd.read_csv(replacementcsvfile,quotechar="'", escapechar="\\",\
+    keep_default_na=False).set_index('word')['replacement'].to_dict())
+    # clean using that
+    messybody = body
+    bodies_replaced_with_my_dict = mystringreplace(messybody, replacementdictionary)
+    # clean up using unidecode
+    # this needs to happen after the replacement dictionary replacement as it will
+    # automatically incorrectly replace all non-ascii characters
+    cleaned_bodies = unidecode(bodies_replaced_with_my_dict)
+    return cleaned_bodies
+
+def clean_quotes(column):
+    '''
+    Cleans up quotes in body or title
+    '''
+    mytext = column
+    # manually checked 3 quotes are used instead of two in the corpus
+    mytext = mytext.replace('```','"')
+    # two open quotes
+    mytext = mytext.replace('``','"')
+    # two close quotes
+    mytext = mytext.replace("''","\"")
+    # single quote
+    mytext = mytext.replace("`","'")
+    return mytext
+
+def make_slug(s):
     # Remove all non-word characters (everything except numbers and letters)
     s = re.sub(r"[^\w\s]", '', s)
     # Replace all runs of whitespace with a single dash
@@ -77,24 +132,28 @@ def mystringreplace(string, replacementobject):
         return string
 
 
-def find_problems(start, end, colname = "cleaned_bodies"):
+def find_problems(start, end, filesdf, colname = "cleaned_bodies"):
     # finding problematic sentences
-    return [item for sublist in [re.findall(r'\w+.[^\x00-\x7F].+',x) for x in filesdf[colname].tolist()[start:end]]  for item in sublist]
+    matches = [re.findall(r'\w+.[^\x00-\x7F].+',x)
+    for x in filesdf[colname].iloc[start:end].tolist()]
+    return [item
+        for sublist in matches
+         for item in sublist]
 
-def find_specific_character_with_preceding(character, start, end, colname = "cleaned_bodies"):
+def find_specific_character_with_preceding(character, start, end, filesdf, colname = "cleaned_bodies"):
     # finding a specific character with the preceding characters
-    pattern = r'\w+.' + character + str('+.*')
+    pattern = r'\w+.' + re.escape(character) + '+.*'
     return [item for sublist in [re.findall(pattern,x) for x in filesdf[colname].tolist()[start:end]]  for item in sublist]
 
-def find_specific_character_wout_preceding(character, start, end, colname = "cleaned_bodies"):
+def find_specific_character_wout_preceding(character, start, end, filesdf, colname = "cleaned_bodies"):
     # finding a specific character where that character starts a word
-    pattern = r'' + character + str('+.*')
+    pattern = r'' + re.escape(character) + '+.*'
     return [item for sublist in [re.findall(pattern,x) for x in filesdf[colname].tolist()[start:end]]  for item in sublist]
 
-def find_filename_from_string(string):
+def find_filename_from_string(string, filesdf):
     return filesdf[filesdf['body'].str.contains(string)]['filename'].to_list()
 
-def print_body_from_string(string):
+def display_body_from_string(string, filesdf):
     return filesdf[filesdf['body'].str.contains(string)]['body'].to_list()
 
 # Related to SPACY ------------------

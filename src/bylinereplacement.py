@@ -1,3 +1,4 @@
+# currently unused; to be tested and further refined prior to final csv handover
 byline_replacementlist = [
     "Exclusive ",
  " And ",
