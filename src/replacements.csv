@@ -1,0 +1,107 @@
+word,replacement,example1,example2,example3,
+'Ã(c)','e','McCafÃ(c) Muffin Break and Michel's Patisserie','rosÃ(c) sparkling pinot','cruditÃ(c)s carrots or beetroot',
+'â(EURO)"','-','some of the experiments are dubious at best â(EURO)" asking men which of two women's breasts they fancy and sniffing sweaty men's shirts â(EURO)"','',''
+'â"¢','"','Jesus Christ is the Son of Godâ"¢','â"¢ â€¦ I\'m calling on the press to cease these relentless and untrue assassinati',''
+'Â°',' degrees ','39Â°C with a 40km headwind','60Â°C That is how hot the water should be at least when washing your underwear','90Â° Lower back may be supported',
+'Ã¡','a','YucatÃ¡n Mexico','SebastiÃ¡n Silva','no other cases',
+'‚Ä¢','-','included: ‚Ä¢ Seven days without exercise makes one weak','‚Ä¢ The more you smoke the more you croak.','etc',
+'Ã"','e', 'MoÃ"l 36 is such a one', 'Le MoÃ"l says she is yet to find','NoÃ"l James Denton RFD ED',
+'Ã‹','E', 'MOÃ‹L grew up with an elder sister','no other cases','no other cases',
+'Â(c)',' ',,,,
+'Ã¨','e','crÃ¨me de menthe','gruyÃ¨re in South Australia','derriÃ¨re.',
+'Ã¶','o','travelled to Berlin last year where he fed off crazy creative vibes and had an exhibition at Gallery Ardes in SchÃ¶nberg.','lamb gÃ¶zleme says Miguel','no other cases'
+' Ã ',' A ','neither novel is a roman Ã  clef','duck Ã  l orange or unadorned as kale salad','no other cases',
+'â€†',' ','Just take a deep breathâ€†...','No.â€†1 concern','Vegasâ€†... Four travelling brides',
+' â€¦ ',' - ','â€ who coincidentally was three years behind Turnbull at Sydney Grammar â€" won t comment publicly on the Nelson diagnosis','â€¦ but fell in love with the style of exercise and what dance gave me','â€¦ but the sudden pump of adrenaline can make people do some incredible things',
+'â€(tm)','\'','wouldnâ€(tm)t know what I was doing but I listened so closely to whatever','thatâ€(tm)s what I am',canâ€(tm)t do this',
+'â€œ','\'','Chairman David Evans apologises and promises â€œzero toleranceâ€ to risky procedures','GI â€œpelletsâ€ while others were given food that was much higher in GI','the â€œFat Doctorâ€ for this reality show',
+'â€˜','\'',chanting â€˜â€˜Warnie Warnie,when the kids yelled â€˜â€˜ball,â€˜â€˜Fat fees threaten to push personal trainers,
+'â€¦','...','"They're not bad "Kerri-Anne says. "I still do a lot of walking and I play golf which is good for your calf musclesâ€¦ especially now I'm not wearing high heels so often."','Willpower is a muscle and the only way to strengthen it is to use it','note - also checked raw corpus with grep and its a ...',
+'â€‰',' ','checked raw corpus with grep - bad space','25â€‰per cent reduction in body weight and controlled their diabetes three years after','inâ€‰the luggage compartments',
+'â€‹',' ','TRAVELâ€‹ A CELEBRATION of Aboriginal culture â€‹â€‹ community,'Hills â€‹ YOU ARE WHAT YOU EAT','checked with grep that it is actually a space',
+'â€\'','-','there â€' let's make her a millionaire','walks â€' and some further afield â€' listed on their website','checked with grep'
+'â€"','-','The wind generator that powers my computer does make some noise ‚Ä" it sounds like a casuarina tree in a stiff breeze ‚Ä" but this is a small price to pay to be off the coal-fired grid','Huang â€" Telethon Kids Institute â€" obesity','â€" Field mushrooms  thick slices of eggplant and juicy beetroot   all bring a satisfying',
+'â€ƒ',' ','milk.â€ƒNutrition Australia said the new pyramid was divided into five core food groups and reinforced sensible','justâ€ƒmetres above the woman's head but the couple didn't look up during their lovemaking','someâ€ƒorganised sport or physical activity outside school hours',
+'\,â€','"','ime\,â€ Dr Stanton said','important\,â€ she','change\,â€ Professor Straker said',
+'â€Š',' ','2â€Š Actually it was only one biology lesson in which we were shown an autopsy','â€ŠThe last time I begged mad people not to write','Billboardâ€Š's Top 100 chart',
+'â€','\'','No wonder she's so fat - look at all the chips on her plate.â€ W','lots of \'what we fancyâ€ and forgetting','was charged $42 for an 'overcooked steakâ€ with potatoes',
+'â-','-','KILLER â-  ATTACKED PRISON NURSE LEAVING HIM WITH BROKEN JAW â-  INMATES SEE KILLI','TIPS â-  Encourage children to dress up','LIFESTYLE â-  Don't try to do too much too soo',
+'Ã€','A','VOILÃ€ SHE WAS HICCUP-FREE','no more occ','no more occ',
+'Ãº','o','MagnÃºsdÃ³ttir the last woman executed in Iceland','no more occ','no more occ',
+'Ã³','o','MagnÃºsdÃ³ttir the last woman executed in Iceland','jamÃ³n and manchego baked eggs','no more occ',
+'Â¢',' cents','93Â¢ 15.45 per cent below the offer price of $1.10. GI','10Â¢ pieces','99Â¢ ones are not half bad',
+'Â',' ','leaves Â¼ cup','willÂ set a target for overweight Queenslanders to downsize by 5 per cent by 2020','Price Â£50795',
+'Ãˆ','E','AVÃˆNE COLD CREAM BODY avene.com.au','no more occ','no more occ',
+'°C',' degrees C','110°C room','18°C for a month','8 °C cooler than the air',
+'Ã‰','E','ANDRÃ‰ ROLLER Myrtle Bank','APRÃ‰S (Future Classic/Inertia)','in grep - ANDRÉ ROLLER',
+'•','-',' • Blood in the','• legumes • alcohol','year.• Brisbane-based',
+'·',' ','box·ing n','kick·box·ingn','no more occ',
+' ¦ ',' - ','TIPS ¦ Go to bed at a regular time','¦ Exercise is of course a key ingredient','breath ¦ Source: Breathingworks.com',
+' ¦',' -','¦Every day about 269 people over 25 are developing diabetes','is: ¦Breathing in and out through the nose ¦Into the lower chest and abdomen ¦10 to 14 breaths a minute ¦Includes a relaxed pause at the end of the out-breath ¦','principles: ¦"First framework goals (such as \'adequate education\' or \'good water status',
+'Ã¸','o','RugbrÃ¸d (Danish rye bread)','TurÃ¸y-','no more occ',
+'Ã±','n','piÃ±ata politicians can endlessly whack for obligation free cash','EspaÃ±a - and was the subject of a battle with the European Union','piÃ±ata threw up',
+'ïƒ\(r\)',' -','39minïƒ(r)',,,
+'ï(r)',' -','DAIRY & ALTERNATIVES ï(r) Low fat yoghurt About four tablespoons or one 120g individual pot ï(r) Cheddar cheese About the size of two 30g thumbs together ','',''
+'…','...','then … but fell in love with the st','to … they\'re glamorising breastfeeding … and I\'m not sure breastfeeding benefits from being glamorised','AND … still managed to save $15000',
+'ïŽ','-','Ž Perinatal/congenital ïŽ Ill-defined ïŽ SIDS ïŽ Accidental','44 ïŽ Suicide ïŽ Accidental poisoning ïŽ Land transport accidents','ïŽ Coronary heart disease ïŽ Cerebrovascular disease ïŽ Dementia and Alzheimer's ïŽ Lung cancer ïŽ COPD',
+'ï¬‚','fl','American ï¬‚ag','ï¬‚avourful combination','Cauliï¬‚ower and cheese',
+'ï¬','fi','ï¬ghting them as he once fought the courtiers','signiï¬cantly greater','scientiï¬c journals',
+'ï"¿'," ",'appyfamilymealsï"¿','BARSï"¿','no more occ',
+'÷',' ','album ÷ called Eraser that touches on this craziness','launched ÷ is the classic "homesick" song from someone who travels for a living','nb: mostly in one doc about Ed Sheeran'
+'â˜...',' ','‚ò... ‚ò... ‚ò... ‚ò...','very strange Advertiser line ending',''
+'˜...',' ','‚ò... ‚ò... ‚ò... ‚ò...','very strange Advertiser line ending',''
+'~²,'2','m~²','H~²O','no more occ'
+'˜','\'','˜Stopping smoking you probably never return to completely normal risk but you progressively return to closer to normal the further you get out from quitting.\'','˜healthy\'','˜As the mean BMI continues to increase so too will perceptions of a heavier '˜',
+'âœ"','- ','','','see CourierMail_2017_Novembertxt/0017txt for some of the problems'
+'œ-','- ','','','see CourierMail_2017_Novembertxt/0017txt for some of the problems'
+'œ"','- ','','','see CourierMail_2017_Novembertxt/0017txt for some of the problems'
+'œ','\'','','','see CourierMail_2017_Novembertxt/0017txt for some of the problems'
+'Ã¢(EURO)','','Riley B. King the Mississippi bluesman better known as B.Ã¢(EURO)B.','later Ã¢(EURO)" or use the mute button during ads','wish Ã¢(EURO)" in a most unusual way'
+'ç','c','François Ozon','no more','no more occ',
+'Ã©','e','purÃ©e','in context - peach puree','no more occ'
+'¬','Euro\ ','sum of ¬200 ($276)','with sales topping ¬634 million ($1 billion)','¬180 million ($256 million) ',
+'£', 'GBP','','',''
+'“','"','“ which uses medication rather than surgery '“ because of the uncertainty created by the case in Cairns."','“ until such time as a random police officer somewhere decides to test the law by charging someone','“ Wii Fit, EA Sports Active and Wii Sports Resort '“ can help you get fit and lose weight',
+'âˆ\'','-','âˆ'110 degrees C or âˆ'166 degrees F','be âˆ\' or seem to be âˆ\' their idea','no more occ',
+'Ã§','c','NiÃ§oise salad','faÃ§ade','FranÃ§oise Sagan',
+'¢',' cents','40¢ per 100 grams of sugar','37¢ a share','add 80¢ to the price of'
+'¿','- ','WITH ¿ Jeff Kennett's mout','¿ About 4 million adult Australians are obes','checked raw files'
+'¯',' ','Cartell'¯Music','no other occ','no other occ'
+'¸- ï¸','','@thebalibible ‚ú"Ô∏‚ú"Ô∏ #thebalibible #uluwatu #islandlife #bali','no other occ','no other occ'
+'Ï','I','Ï can\'t cope','no other occ', 'no other occ'
+'”','"','” way back in Thirtysomething '” so much office basketball I felt I should be keeping score','” he\'s been bucked off. He\'s spinning up into the air in a really dramatic visually exciting fashion ..."','no more occ'
+'€¦','...','But sweetheart if your re reading€¦','no other occ', 'no other occ'
+'â,€','Euro\ ','€2.40 ($3.70)','€27.5 million','€55 million'
+'â,Euro','Euro','','no other occ'
+'€','Euro\ ','€2.40 ($3.70)','€27.5 million ($39 million)','€55 million'
+'``','"','``Then we have got to see how much money there is','``It is not necessarily sufficient to answer the challenges ahead that require much','``If both of your parents have diabetes you have a one in two chance of developing '
+'`','\'','','',''
+'°',' degrees','29°','no other occ','no other occ'
+'‚','\,','wierd comma','',''
+'m²',' metres square ','m²','',''
+'H ²O','H2O','water','',''
+'H²O','H2O','water','',''
+'-²','-','bulleted list','no other occ','no other occ'
+'²','2','all other occurances','',''
+'α','alpha ','αa-synuclein',,,
+'Ã1/4','u','GewÃ1/4rztraminer','SchaubÃ1/4hne Theatre','no other occ'
+'ł','l','Kołakowski','no other occ','no other occ'
+'â?"','-','countries â?" bar workaholic America and Japan - enjoy ','small â?" no matter how emaciated - i','no other occ'
+'á','a','Kahleová says','no other occ','no other occ'
+'\,lanco','Blanco','Jose Blanco','manual fix of poor encoding in original docs','no other occ','no other occ'
+'é','e','protégés','José',''
+'è','e','derrière.','crèche','derrières'
+'ÃO','AO','GUSMÃO Coburg','no other occ','no other occ'
+'Ã(r)','- ','Ã(r)Visit: www.stepathon.org.au','Ã(r) Weakness and feeling tired Ã(r) Bleeding gums Ã(r) Teeth fall out Ã(r) Sore arms and legs',''
+'Ã-','\'','itÃ-s largely related to ageing','Ã-100m medley relay and bronze','no other occ'
+'ž','z','Fjolnir Ãžorgeirsson','no other occ','no other occ'
+'Ã2','A','AutÃ2noma de Barcelona','no other occ','no other occ'
+'Ã','A','Fjolnir Ãzorgeirsson','pied-Ã -terre','no other occ'
+'ó','o','Simón Bolívar','Morrón.','no other occ'
+'í','i','Bolívar','no other occ','no other occ'
+'ê','-','decorate ê printed Barefoot Scoreboard for each kid (barefootinvestor.com/resources) ê wallet or purse for older kids','no other occ','no other occ'
+'â...','...','Cereal ‚..."','other wierd courier mail','docs'
+'â?(tm)','\'','It‚?(tm)s becoming clearer that both sides of politics are heading towards the same hospitals focus','no other occ','no other occ'
+'1â"2','.5','Sure there are some startling visual moments but in a bumnumbing performance of 21‚"2 hours (with no interval) they are too few and too far between.','71"2 weeks of hunger striking I must','SMH wierdness - no more'
+'ï-','','four ï- 1/4to 12 at three different schools and a kindergarten','has four children aged four Ôø1/4to 12',''
+'. . .','...','Dr Bruce Reid is one of the greatest people you'll ever meet and I have the utmost faith in him . . . if you put integrity up on the table you put Jobe Watson and Bruce Reid right up there together',,

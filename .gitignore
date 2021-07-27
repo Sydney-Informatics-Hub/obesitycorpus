@@ -1,11 +1,9 @@
 300_data_processed
 100_data_raw/
-200_data_clean
-
-*.pickle
-
+src/__pycache__/*
+src/reasonabledf.csv
 src/resonabledf.csv
-
+200_data_clean
+*.pickle
 *.pkl
-
-src/__pycache__/
+.vscode
