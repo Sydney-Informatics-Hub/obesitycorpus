@@ -6,7 +6,6 @@ from spacytextblob.spacytextblob import SpacyTextBlob
 import pickle
 import functs as f
 
-
 filesdf = pd.read_pickle("../200_data_clean/filesdf.pickle")
 
 nlp = spacy.load("en_core_web_sm")
