@@ -7,3 +7,9 @@ src/resonabledf.csv
 *.pickle
 *.pkl
 .vscode
+
+src/mallet-2.0.8/
+
+src/.idea/
+
+src/mallet-2.0.8.zip
