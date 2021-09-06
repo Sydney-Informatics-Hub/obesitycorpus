@@ -5,7 +5,9 @@ import spacy
 from spacy.tokens import Span
 import pandas as pd
 from unidecode import unidecode
+import unicodedata
 import dateparser
+import zipfile
 
 
 def obesitylist(*args):
@@ -61,6 +63,14 @@ def get_byline(contents):
     else:
         return None
 
+def get_wordcount_from_metadata(contents):
+    wordcount_specified = re.search('Length: (\d+) words', contents, re.IGNORECASE)
+    if wordcount_specified:
+        return wordcount_specified.group(1)
+    else:
+        return None
+
+
 
 def parse_filename(path):
     source, year, month = path.split('/')[2].split("_")
@@ -99,7 +109,9 @@ def clean_nonascii(body, replacementcsvfile="replacements.csv"):
     # clean up using unidecode
     # this needs to happen after the replacement dictionary replacement as it will
     # automatically incorrectly replace all non-ascii characters
-    cleaned_bodies = unidecode(bodies_replaced_with_my_dict)
+    ascii_replaced = unidecode(bodies_replaced_with_my_dict)
+    # clean up using unidecodedata.normalise
+    cleaned_bodies = unicodedata.normalize("NFKD",ascii_replaced)
     return cleaned_bodies
 
 
@@ -127,6 +139,7 @@ def clean_quot(column):
     mytext = mytext.replace('&quot;&quot;&quot;', '"')
     mytext = mytext.replace('&quot;&quot;', '"')
     mytext = mytext.replace('&quot;', '"')
+    mytext = mytext.replace('&Quot;', '"')
     return mytext
 
 
@@ -210,12 +223,48 @@ def write_corpus_titlebody(df, directoryname="corpus-titlebody"):
     '''
     Writes our corpus with title and body, without any tags or metadata
     '''
-    for index, row in filesdf.head().iterrows():
-        outputfilename = f"../200_data_clean/{directoryname}/{row.source}_{row.year}_{row.numeric_month}_{row.fourdigitcode}_{make_slug(row.title)}.txt"
+    archive = zipfile.ZipFile(f"../200_data_clean/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
+    for index, row in df.iterrows():
+        outputfilename = f"{row.source}_{row.year}_{row.numeric_month}_{row.fourdigitcode}_{make_slug(row.title)}.txt"
+        content = row['title'] + row['body']
+        archive.writestr(outputfilename, content)
+    archive.close()
+
+def write_corpus_nested(df, directoryname="corpus-nested"):
+    '''
+    Writes our corpus with title and body, nested by source/year/month
+    '''
+    for index, row in df.iterrows():
+        outputfilename = directoryname + f"/{row.source}/{row.year}/{row.numeric_month}/{row.fourdigitcode}_{make_slug(row.title)}.txt"
+        content = row['title'] + row['body']
         f = open(outputfilename, 'w', encoding='utf-8')
-        f.write(row['title'])
-        f.write(row['body'])
+        f.write(content)
         f.close()
+
+
+def cqpweb_metadata(df, directoryname="corpus-titlebody"):
+    '''
+    Writes our corpus with title and body, without any tags or metadata
+    '''
+    # ../200_data_clean/
+    outputdf = df.copy()
+    outputdf['slug'] = outputdf['title'].apply(lambda x: make_slug(x))
+    outputdf['outputputfile'] = outputdf[['source', 'year', 'numeric_month', 'fourdigitcode', 'slug']].agg('_'.join, axis=1)
+    outputdf.drop(['filename', 'encoding','confidence','fullpath','fourdigitcode','year','numeric_month','body'], axis=1, inplace=True)
+    outputdf.to_csv(f'../200_data_clean/{directoryname}_metadata.csv')
+
+
+def write_corpus_sketchengine(df, directoryname="corpus-sketchengine"):
+    '''
+    Writes our corpus with title and body, with tags in the format accepted by sketch engine
+    '''
+    archive = zipfile.ZipFile(f"../200_data_clean/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
+    for index, row in df.iterrows():
+        outputfilename = f"{row.source}_{row.year}_{row.numeric_month}_{row.fourdigitcode}_{make_slug(row.title)}.txt"
+        sketchenginetags = '<doc date="' + row['date'].strftime("%Y-%m-%d") + '" publication="' + row['source'] + '" wordcountTotal="' + str(row['wordcount_total']) + '">'
+        content = row['title'] + "\n" + sketchenginetags + row['body']
+        archive.writestr(outputfilename, content)
+    archive.close()
 
 
 # Related to SPACY ------------------
@@ -224,16 +273,15 @@ def explore_tokens(sentencenlp_list, obesitynames):
     sentencesummarylist = []
     for sentence in sentencenlp_list:
         # displacy.serve(sentence, style="dep")
-        tokensummarylist = []
         for token in sentence:
             if token.lemma_ in obesitynames:
                 mydict = {
+                    'sentence': sentence.text,
                     'text': token.text,
                     'tag': token.tag_,
                     'dep': token.dep_,
                     'head': token.head,
-                    'left': token.left_edge,
-                    'right': token.right_edge}
-                tokensummarylist.append(mydict)
-        sentencesummarylist.append(tokensummarylist)
+                    'left': token.left_edge.orth_,
+                    'right': token.right_edge.orth_}
+                sentencesummarylist.append(mydict)
     return sentencesummarylist
