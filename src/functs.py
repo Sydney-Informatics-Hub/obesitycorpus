@@ -8,7 +8,7 @@ from unidecode import unidecode
 import unicodedata
 import dateparser
 import zipfile
-
+import os
 
 def obesitylist(*args):
     mylist = ['obesity', 'obese', "obesogenic", "obesogen"]
@@ -235,7 +235,9 @@ def write_corpus_nested(df, directoryname="corpus-nested"):
     Writes our corpus with title and body, nested by source/year/month
     '''
     for index, row in df.iterrows():
-        outputfilename = directoryname + f"/{row.source}/{row.year}/{row.numeric_month}/{row.fourdigitcode}_{make_slug(row.title)}.txt"
+        outputdir = "../200_data_clean/" + directoryname + f"/{row.source}/{row.year}/{row.numeric_month}/"
+        outputfilename = outputdir + f"{row.fourdigitcode}_{make_slug(row.title)}.txt"
+        os.makedirs(os.path.dirname(outputdir), exist_ok=True)
         content = row['title'] + row['body']
         f = open(outputfilename, 'w', encoding='utf-8')
         f.write(content)
