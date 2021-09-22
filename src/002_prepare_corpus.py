@@ -3,8 +3,10 @@ from utils import get_project_root
 from functs import get_byline, parse_filename, readfilesin, make_slug
 from functs import get_text4digitcode, clean_nonascii, clean_quotes, get_date, clean_quot, replace_six_questionmarks
 from functs import write_corpus_titlebody, write_corpus_sketchengine, get_wordcount_from_metadata, cqpweb_metadata, write_corpus_nested
+from functs import clean_page_splits, clean_redundant_phrases
 from datetime import datetime
 import re
+import shutil
 
 
 # imports for debugging non-unicode characters
@@ -86,6 +88,9 @@ filesdf['tmpdate'] = filesdf.apply(lambda x: (datetime.strptime(str(x['year'] + 
 filesdf['date'] = filesdf['date'].fillna(filesdf['tmpdate'])
 filesdf.drop('tmpdate', axis=1, inplace=True)
 
+# clean page references and social media references
+filesdf["body"] = filesdf["body"].apply(clean_page_splits)
+filesdf["body"] = filesdf["body"].apply(clean_redundant_phrases)
 
 # wordcount
 # extract length from metadata
@@ -102,10 +107,29 @@ filesdf['wordcount_total'] = filesdf.loc[:,['wordcount_body','wordcount_title']]
 # find_filename_from_string(string, filesdf = filesdf)
 # print_body_from_string(string, filesdf = filesdf)
 
+# count how many times words of interest appear in the body
+filesdf['obesity_body_count'] = filesdf['body'].str.count('obesity')
+filesdf['obesogen_body_count'] = filesdf['body'].str.count('obesogen')
+filesdf['obese_body_count'] = filesdf['body'].str.count('obese')
+filesdf['keywords_sum_body'] = filesdf.obesity_body_count + filesdf.obesogen_body_count + filesdf.obese_body_count
+#
+filesdf['obesity_in_title'] = filesdf['title'].str.count('obesity')
+filesdf['obesogen_in_title'] = filesdf['title'].str.count('obesogen')
+filesdf['obese_in_title'] = filesdf['title'].str.count('obese')
+filesdf['keywords_sum_title'] = filesdf.obesity_in_title + filesdf.obesogen_in_title + filesdf.obese_in_title
+#
+filesdf['keywords_sum_total'] = filesdf.keywords_sum_body + filesdf.keywords_sum_title
+
+
+
 # write corpus out as per client's request
 write_corpus_titlebody(df=filesdf, directoryname="corpus-titlebody")
-cqpweb_metadata(filesdf, directoryname="corpus-titlebody")
+cqpweb_metadata(df = filesdf, directoryname="corpus-titlebody")
 write_corpus_sketchengine(df=filesdf, directoryname="corpus-sketchengine")
 write_corpus_nested(df=filesdf, directoryname="corpus-nested")
 
 filesdf.to_pickle("../200_data_clean/filesdf.pickle")
+
+# copy to cloudstor
+# very fragile local link :(
+shutil.copytree('../200_data_clean', '../../../../cloudstor/projects/obesity', dirs_exist_ok=True)

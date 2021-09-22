@@ -142,6 +142,42 @@ def clean_quot(column):
     mytext = mytext.replace('&Quot;', '"')
     return mytext
 
+def clean_page_splits(bodytext):
+    '''
+    This is useful not only because it removes From Page/Continued Page
+    But also and more so because the byline or it's variant can be also repeated within those two tags
+    Leading to possible duplication of key terms that were NOT in the original article
+    '''
+    # Advertiser +  NT news + Courier Mail
+    # note that text byline is duplicated in this example between the two page references!
+    bodytext = re.sub(r'\nContinued Page \d+\n\w+.*\nFrom Page \d+\n', ' ', bodytext)
+    # canberra times
+    bodytext = re.sub(r'\nFrom Page\d+ ', ' ', bodytext)
+    bodytext = re.sub(r'\nFrom Page \d+ ', ' ', bodytext)
+    # Herald sun (also matches Hobart Mercury)
+    bodytext = re.sub(r'\nContinued Page \d+\nFrom Page \d+\n', ' ', bodytext)
+    bodytext = re.sub(r'\nContinued Page \d+ From Page \d+\n', ' ', bodytext)
+    # NT news
+    bodytext = re.sub(r'\nCONTINUED Page \d+\n\w+.*\nFROM Page \d+\n', ' ', bodytext)
+    # SydHerald and Age and Telegraph
+    # no evidence of splits
+    # Australian
+    bodytext = re.sub(r'\nContinued on Page \d+\nContinued from Page \d+\n', ' ', bodytext)
+    # West Australian
+    bodytext = re.sub(r'\nContinued page \d+\nFrom page \d+', ' ', bodytext)
+    return bodytext
+
+
+def clean_redundant_phrases(bodytext):
+    '''
+    This function cleans some social media references at the end of texts that are unrelated to the content of the body.
+    '''
+    bodytext = re.sub(r'\nTo read more from Good Weekend magazine, visit our page at The Sydney Morning Herald or            The Age.', '', bodytext)
+    bodytext = re.sub(r'           Stay informed. Like the Brisbane Times Facebook page           .', '', bodytext)
+    # can times
+    bodytext = re.sub(r'\nFollow \w.+ on Twitter and \s+ Facebook\n', ' ', bodytext)
+    bodytext = re.sub(r'Follow us on Facebook', ' ', bodytext)
+    return bodytext
 
 def replace_six_questionmarks(column):
     '''
@@ -253,7 +289,7 @@ def cqpweb_metadata(df, directoryname="corpus-titlebody"):
     outputdf['slug'] = outputdf['title'].apply(lambda x: make_slug(x))
     outputdf['outputputfile'] = outputdf[['source', 'year', 'numeric_month', 'fourdigitcode', 'slug']].agg('_'.join, axis=1)
     outputdf.drop(['filename', 'encoding','confidence','fullpath','fourdigitcode','year','numeric_month','body'], axis=1, inplace=True)
-    outputdf.to_csv(f'../200_data_clean/{directoryname}_metadata.csv')
+    outputdf.to_csv(f'../200_data_clean/{directoryname}_metadata.csv', index=False)
 
 
 def write_corpus_sketchengine(df, directoryname="corpus-sketchengine"):
