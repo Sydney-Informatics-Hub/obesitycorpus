@@ -3,7 +3,7 @@ from utils import get_project_root
 from functs import get_byline, parse_filename, readfilesin, make_slug
 from functs import get_text4digitcode, clean_nonascii, clean_quotes, get_date, clean_quot, replace_six_questionmarks
 from functs import write_corpus_titlebody, write_corpus_sketchengine, get_wordcount_from_metadata, cqpweb_metadata, write_corpus_nested
-from functs import clean_page_splits, clean_redundant_phrases, count_keywords
+from functs import clean_page_splits, clean_redundant_phrases, count_keywords, strip_newlines
 from datetime import datetime
 import re
 import shutil
@@ -65,6 +65,9 @@ filesdf["body"] = filesdf["body"].apply(clean_nonascii)
 filesdf["title"] = filesdf["title"].apply(clean_nonascii)
 filesdf["metadata"] = filesdf["metadata"].apply(clean_nonascii)
 
+# get rid of newlines at start and end of body & title
+filesdf["body"] = filesdf["body"].apply(strip_newlines)
+filesdf["title"] = filesdf["title"].apply(strip_newlines)
 # clean up quotes
 filesdf["body"] = filesdf["body"].apply(clean_quotes)
 filesdf["title"] = filesdf["title"].apply(clean_quotes)

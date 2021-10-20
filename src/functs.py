@@ -70,7 +70,8 @@ def get_wordcount_from_metadata(contents):
     else:
         return None
 
-
+def standard_outputfilename(row):
+    return f"{row.source}_{row.year}_{row.numeric_month}_{row.fourdigitcode}_{make_slug(row.title)}.txt"
 
 def parse_filename(path):
     source, year, month = path.split('/')[2].split("_")
@@ -114,6 +115,9 @@ def clean_nonascii(body, replacementcsvfile="replacements.csv"):
     cleaned_bodies = unicodedata.normalize("NFKD",ascii_replaced)
     return cleaned_bodies
 
+def strip_newlines(column):
+    column = column.strip("\n")
+    return column
 
 def clean_quotes(column):
     '''
@@ -263,7 +267,7 @@ def write_corpus_titlebody(df, directoryname="corpus-titlebody"):
     '''
     archive = zipfile.ZipFile(f"../200_data_clean/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
     for index, row in df.iterrows():
-        outputfilename = f"{row.source}_{row.year}_{row.numeric_month}_{row.fourdigitcode}_{make_slug(row.title)}.txt"
+        outputfilename = standard_outputfilename(row)
         content = row['title'] + row['body']
         archive.writestr(outputfilename, content)
     archive.close()
@@ -274,7 +278,7 @@ def write_corpus_nested(df, directoryname="corpus-nested"):
     '''
     for index, row in df.iterrows():
         outputdir = "../200_data_clean/" + directoryname + f"/{row.source}/{row.year}/{row.numeric_month}/"
-        outputfilename = outputdir + f"{row.fourdigitcode}_{make_slug(row.title)}.txt"
+        outputfilename = outputdir + standard_outputfilename(row)
         os.makedirs(os.path.dirname(outputdir), exist_ok=True)
         content = row['title'] + row['body']
         f = open(outputfilename, 'w', encoding='utf-8')
@@ -287,11 +291,14 @@ def cqpweb_metadata(df, directoryname="corpus-titlebody"):
     Writes our corpus with title and body, without any tags or metadata
     '''
     # ../200_data_clean/
+    # TODO Fix this to use standard_outputfilename instead of the below code
     outputdf = df.copy()
     outputdf['slug'] = outputdf['title'].apply(lambda x: make_slug(x))
     outputdf['outputputfile'] = outputdf[['source', 'year', 'numeric_month', 'fourdigitcode', 'slug']].agg('_'.join, axis=1)
+    # this removed columns that don't need to be in the metadata
     outputdf.drop(['filename', 'encoding','confidence','fullpath','fourdigitcode','year','numeric_month','body'], axis=1, inplace=True)
     outputdf.to_csv(f'../200_data_clean/{directoryname}_metadata.csv', index=False)
+    # TODO add a tsv output here
 
 
 def write_corpus_sketchengine(df, directoryname="corpus-sketchengine"):
@@ -300,9 +307,9 @@ def write_corpus_sketchengine(df, directoryname="corpus-sketchengine"):
     '''
     archive = zipfile.ZipFile(f"../200_data_clean/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
     for index, row in df.iterrows():
-        outputfilename = f"{row.source}_{row.year}_{row.numeric_month}_{row.fourdigitcode}_{make_slug(row.title)}.txt"
+        outputfilename = standard_outputfilename(row)
         sketchenginetags = '<doc date="' + row['date'].strftime("%Y-%m-%d") + '" publication="' + row['source'] + '" wordcountTotal="' + str(row['wordcount_total']) + '">'
-        content = row['title'] + "\n" + sketchenginetags + row['body']
+        content = sketchenginetags + "\n<head>" + row['title'] + "</head>\n<body>\n" + row['body'] + "\n</body>\n<doc>"
         archive.writestr(outputfilename, content)
     archive.close()
 
