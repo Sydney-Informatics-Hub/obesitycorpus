@@ -27,7 +27,7 @@ def readfilesin(file_path, encoding):
     else:
         try:
             with open(file_path, 'rb') as non_unicode_file:
-                content = non_unicode_file.read(1024)
+                content = non_unicode_file.read()
                 dammit = UnicodeDammit(content, ['Windows-1252'])
                 data = dammit.unicode_markup
         except Exception as e:
