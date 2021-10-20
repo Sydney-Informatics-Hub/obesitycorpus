@@ -187,6 +187,8 @@ def replace_six_questionmarks(column):
     mytext = re.sub(r'[^?](\?){6}[^?]', '"', column)
     return mytext
 
+def count_keywords(series, keyword):
+    return series.map(lambda x: x.lower().count(keyword))
 
 def make_slug(s):
     # Remove all non-word characters (everything except numbers and letters)

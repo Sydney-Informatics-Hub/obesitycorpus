@@ -3,7 +3,7 @@ from utils import get_project_root
 from functs import get_byline, parse_filename, readfilesin, make_slug
 from functs import get_text4digitcode, clean_nonascii, clean_quotes, get_date, clean_quot, replace_six_questionmarks
 from functs import write_corpus_titlebody, write_corpus_sketchengine, get_wordcount_from_metadata, cqpweb_metadata, write_corpus_nested
-from functs import clean_page_splits, clean_redundant_phrases
+from functs import clean_page_splits, clean_redundant_phrases, count_keywords
 from datetime import datetime
 import re
 import shutil
@@ -108,14 +108,14 @@ filesdf['wordcount_total'] = filesdf.loc[:,['wordcount_body','wordcount_title']]
 # print_body_from_string(string, filesdf = filesdf)
 
 # count how many times words of interest appear in the body
-filesdf['obesity_body_count'] = filesdf['body'].map(lambda x: x.lower().count('obesity'))
-filesdf['obesogen_body_count'] = filesdf['body'].map(lambda x: x.lower().count('obesogen'))
-filesdf['obese_body_count'] = filesdf['body'].map(lambda x: x.lower().count('obese'))
+filesdf['obesity_body_count'] = count_keywords(filesdf['body'], 'obesity')
+filesdf['obesogen_body_count'] = count_keywords(filesdf['body'], 'obesogen')
+filesdf['obese_body_count'] = count_keywords(filesdf['body'], 'obese')
 filesdf['keywords_sum_body'] = filesdf.obesity_body_count + filesdf.obesogen_body_count + filesdf.obese_body_count
 #
-filesdf['obesity_in_title'] = filesdf['title'].map(lambda x: x.lower().count('obesity'))
-filesdf['obesogen_in_title'] = filesdf['title'].map(lambda x: x.lower().count('obesogen'))
-filesdf['obese_in_title'] = filesdf['title'].map(lambda x: x.lower().count('obese'))
+filesdf['obesity_in_title'] = count_keywords(filesdf['title'], 'obesity')
+filesdf['obesogen_in_title'] = count_keywords(filesdf['title'], 'obesogen')
+filesdf['obese_in_title'] = count_keywords(filesdf['title'], 'obese')
 filesdf['keywords_sum_title'] = filesdf.obesity_in_title + filesdf.obesogen_in_title + filesdf.obese_in_title
 #
 filesdf['keywords_sum_total'] = filesdf.keywords_sum_body + filesdf.keywords_sum_title
