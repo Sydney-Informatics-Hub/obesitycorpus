@@ -30,6 +30,10 @@ filesdf['contents'] = result
 
 # filter out those files that don't have the word "body" (case-insensitive) in them
 # These are the list files and the zip file
+# write out the metadata for them for records
+dropped = filesdf[~filesdf['contents'].str.contains('body', case=False)]
+dropped.to_csv(f'../200_data_clean/dropped.csv', index=False)
+# then filter them out
 filesdf = filesdf[filesdf['contents'].str.contains('body', case=False)]
 
 # split header and body, thankfully case-sensitive works
@@ -40,8 +44,8 @@ filesdf['contents_split'] = filesdf['contents'].str.split("\nBody\n")
 filesdf[['metadata', 'body']] = pd.DataFrame(filesdf.contents_split.tolist(), index=filesdf.index)
 filesdf = filesdf.drop(columns=['contents_split', 'contents'])
 
-# grab the best pass at the title, and convert all to title case
-filesdf = filesdf.assign(title=filesdf['metadata'].map(lambda x: x.partition('\n')[0].title()))
+# grab the best pass at the title, and convert all so only the first word is capitalised
+filesdf = filesdf.assign(title=filesdf['metadata'].map(lambda x: x.partition('\n')[0].capitalize()))
 
 # get date/month from the relevant directory of the filepath
 filename_fields = filesdf["filename"].apply(parse_filename)
@@ -78,6 +82,9 @@ filesdf["body"] = filesdf["body"].apply(clean_quot)
 filesdf["body"] = filesdf["body"].apply(replace_six_questionmarks)
 # and replace multiple dashes with just one
 filesdf["body"] = filesdf["body"].apply(lambda x: (re.sub(r'-+', '-', x)))
+# and then replace ampersands with safe replacements
+filesdf["title"] = filesdf["title"].apply(lambda x: (re.sub(r'&', '&amp;', x)))
+filesdf["body"] = filesdf["body"].apply(lambda x: (re.sub(r'&', '&amp;', x)))
 
 
 # get dates

@@ -309,7 +309,7 @@ def write_corpus_sketchengine(df, directoryname="corpus-sketchengine"):
     for index, row in df.iterrows():
         outputfilename = standard_outputfilename(row)
         sketchenginetags = '<doc date="' + row['date'].strftime("%Y-%m-%d") + '" publication="' + row['source'] + '" wordcountTotal="' + str(row['wordcount_total']) + '">'
-        content = sketchenginetags + "\n<head>" + row['title'] + "</head>\n<body>\n" + row['body'] + "\n</body>\n<doc>"
+        content = sketchenginetags + "\n<head>" + row['title'] + "</head>\n<body>\n" + row['body'] + "\n</body>\n</doc>"
         archive.writestr(outputfilename, content)
     archive.close()
 

@@ -109,7 +109,6 @@ word,replacement,example1,example2,example3,
 '>','&gt;','The majority of adults had sufficient levels of vitamin D (&gt;50 nmol/L)','&gt;&gt;Don Aitkin is a former vice-chancellor of the University of Canberra',''
 '<','&lt;','clear less than signs','foods &lt;3.5 stars',,
 '&amp;','','Syd Herald only','at end of line','9 cases'
-'&','&amp;','replacement as per Monika request',''
 '¬†',' ','From corpus metadata extraction replaces space','',''
 '¬†',' ','As above','',''
 '\xa0',' ','Weird issue','',''
