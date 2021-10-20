@@ -108,14 +108,14 @@ filesdf['wordcount_total'] = filesdf.loc[:,['wordcount_body','wordcount_title']]
 # print_body_from_string(string, filesdf = filesdf)
 
 # count how many times words of interest appear in the body
-filesdf['obesity_body_count'] = filesdf['body'].str.count('obesity')
-filesdf['obesogen_body_count'] = filesdf['body'].str.count('obesogen')
-filesdf['obese_body_count'] = filesdf['body'].str.count('obese')
+filesdf['obesity_body_count'] = filesdf['body'].map(lambda x: x.lower().count('obesity'))
+filesdf['obesogen_body_count'] = filesdf['body'].map(lambda x: x.lower().count('obesogen'))
+filesdf['obese_body_count'] = filesdf['body'].map(lambda x: x.lower().count('obese'))
 filesdf['keywords_sum_body'] = filesdf.obesity_body_count + filesdf.obesogen_body_count + filesdf.obese_body_count
 #
-filesdf['obesity_in_title'] = filesdf['title'].str.count('obesity')
-filesdf['obesogen_in_title'] = filesdf['title'].str.count('obesogen')
-filesdf['obese_in_title'] = filesdf['title'].str.count('obese')
+filesdf['obesity_in_title'] = filesdf['title'].map(lambda x: x.lower().count('obesity'))
+filesdf['obesogen_in_title'] = filesdf['title'].map(lambda x: x.lower().count('obesogen'))
+filesdf['obese_in_title'] = filesdf['title'].map(lambda x: x.lower().count('obese'))
 filesdf['keywords_sum_title'] = filesdf.obesity_in_title + filesdf.obesogen_in_title + filesdf.obese_in_title
 #
 filesdf['keywords_sum_total'] = filesdf.keywords_sum_body + filesdf.keywords_sum_title
