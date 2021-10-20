@@ -10,6 +10,10 @@ import dateparser
 import zipfile
 import os
 
+def apply_to_titlebody(df, function):
+    df["body"] = df["body"].apply(function)
+    df["title"] = df["title"].apply(function)
+
 def obesitylist(*args):
     mylist = ['obesity', 'obese', "obesogenic", "obesogen"]
     for x in args:
@@ -132,7 +136,17 @@ def clean_quotes(column):
     mytext = mytext.replace("''", "\"")
     # single quote
     mytext = mytext.replace("`", "'")
+
     return mytext
+
+def clean_wa(column):
+    # replaces some odd tags in the WA
+    mytext = column
+    # replacing ";  -----QUOTE----" and ";  -----info box----" detected in the title of some of the WA articles
+    mytext = re.sub('; {2}-----QUOTE----', '', mytext, flags=re.IGNORECASE)
+    mytext = re.sub(';  -----info box----', '', mytext, flags=re.IGNORECASE)
+    return mytext
+
 
 
 def clean_quot(column):
@@ -219,35 +233,35 @@ def mystringreplace(string, replacementobject):
         return string
 
 
-def find_problems(start, end, filesdf, colname="cleaned_bodies"):
+def find_problems(start, end, corpusdf, colname="cleaned_bodies"):
     # finding problematic sentences
     matches = [re.findall(r'\w+.[^\x00-\x7F].+', x)
-               for x in filesdf[colname].iloc[start:end].tolist()]
+               for x in corpusdf[colname].iloc[start:end].tolist()]
     return [item
             for sublist in matches
             for item in sublist]
 
 
-def find_specific_character_with_preceding(character, start, end, filesdf, colname="cleaned_bodies"):
+def find_specific_character_with_preceding(character, start, end, corpusdf, colname="cleaned_bodies"):
     # finding a specific character with the preceding characters
     pattern = r'\w+.' + re.escape(character) + '+.*'
-    return [item for sublist in [re.findall(pattern, x) for x in filesdf[colname].tolist()[start:end]] for item in
+    return [item for sublist in [re.findall(pattern, x) for x in corpusdf[colname].tolist()[start:end]] for item in
             sublist]
 
 
-def find_specific_character_wout_preceding(character, start, end, filesdf, colname="cleaned_bodies"):
+def find_specific_character_wout_preceding(character, start, end, corpusdf, colname="cleaned_bodies"):
     # finding a specific character where that character starts a word
     pattern = r'' + re.escape(character) + '+.*'
-    return [item for sublist in [re.findall(pattern, x) for x in filesdf[colname].tolist()[start:end]] for item in
+    return [item for sublist in [re.findall(pattern, x) for x in corpusdf[colname].tolist()[start:end]] for item in
             sublist]
 
 
-def find_filename_from_string(string, filesdf):
-    return filesdf[filesdf['body'].str.contains(string)]['filename'].to_list()
+def find_filename_from_string(string, corpusdf):
+    return corpusdf[corpusdf['body'].str.contains(string)]['filename'].to_list()
 
 
-def display_body_from_string(string, filesdf):
-    return filesdf[filesdf['body'].str.contains(string)]['body'].to_list()
+def display_body_from_string(string, corpusdf):
+    return corpusdf[corpusdf['body'].str.contains(string)]['body'].to_list()
 
 
 def get_date(string):
@@ -298,7 +312,7 @@ def cqpweb_metadata(df, directoryname="corpus-titlebody"):
     # this removed columns that don't need to be in the metadata
     outputdf.drop(['filename', 'encoding','confidence','fullpath','fourdigitcode','year','numeric_month','body'], axis=1, inplace=True)
     outputdf.to_csv(f'../200_data_clean/{directoryname}_metadata.csv', index=False)
-    # TODO add a tsv output here
+    outputdf.to_csv(f'../200_data_clean/{directoryname}_metadata.tsv', sep='\t', index=False)
 
 
 def write_corpus_sketchengine(df, directoryname="corpus-sketchengine"):
