@@ -1,5 +1,9 @@
 # Obesity project
 
+## Corpus cleaning notes
+
+1. Most of the replacements are identified in the replacements.csv file
+2. We extract the date from the document for all but one document, where no date is present. In this case, we assign its date to be to the first of the month from the month/year in its filename.
 
 
 
