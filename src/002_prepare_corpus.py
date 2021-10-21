@@ -1,9 +1,11 @@
 import pandas as pd
+import numpy as np
 from utils import get_project_root
 from functs import get_byline, parse_filename, readfilesin, make_slug
 from functs import get_text4digitcode, clean_nonascii, clean_quotes, get_date, clean_quot, replace_six_questionmarks
-from functs import write_corpus_titlebody, write_corpus_sketchengine, get_wordcount_from_metadata, cqpweb_metadata, write_corpus_nested
-from functs import clean_page_splits, clean_redundant_phrases, count_keywords, strip_newlines
+from functs import write_corpus_titlebody, write_corpus_sketchengine, get_wordcount_from_metadata, write_corpus_cqpweb, write_corpus_nested
+from functs import clean_page_splits, clean_redundant_phrases, count_keywords, strip_newlines, apply_to_titlebody, abbreviate_source
+from functs import clean_wa
 from datetime import datetime
 import re
 import shutil
@@ -18,127 +20,129 @@ projectroot = str(get_project_root())
 rawdatapath = projectroot + "/100_data_raw/Australian Obesity Corpus/"
 processeddatapath = projectroot + "/300_data_processed/"
 
-filesdf = pd.read_csv(str(processeddatapath + 'inferred_dataset_encodings.csv'))
+corpusdf = pd.read_csv(str(processeddatapath + 'inferred_dataset_encodings.csv'))
 
 # get column with files as full path
-filesdf['fullpath'] = rawdatapath + filesdf['filename'].astype(str)
-print(filesdf.shape[0])
+corpusdf['fullpath'] = rawdatapath + corpusdf['filename'].astype(str)
+print(corpusdf.shape[0])
 
-result = [readfilesin(x, y) for x, y in zip(filesdf['fullpath'], filesdf['encoding'])]
+result = [readfilesin(x, y) for x, y in zip(corpusdf['fullpath'], corpusdf['encoding'])]
 
-filesdf['contents'] = result
+corpusdf['contents'] = result
 
 # filter out those files that don't have the word "body" (case-insensitive) in them
 # These are the list files and the zip file
 # write out the metadata for them for records
-dropped = filesdf[~filesdf['contents'].str.contains('body', case=False)]
+dropped = corpusdf[~corpusdf['contents'].str.contains('body', case=False)]
 dropped.to_csv(f'../200_data_clean/dropped.csv', index=False)
 # then filter them out
-filesdf = filesdf[filesdf['contents'].str.contains('body', case=False)]
+corpusdf = corpusdf[corpusdf['contents'].str.contains('body', case=False)]
 
 # split header and body, thankfully case-sensitive works
-filesdf['contents_split'] = filesdf['contents'].str.split("\nBody\n")
+corpusdf['contents_split'] = corpusdf['contents'].str.split("\nBody\n")
 # always splits into two
-# filesdf['contents_len'] = filesdf['contents_split'].str.len()
+# corpusdf['contents_len'] = corpusdf['contents_split'].str.len()
 # take advantage of this:
-filesdf[['metadata', 'body']] = pd.DataFrame(filesdf.contents_split.tolist(), index=filesdf.index)
-filesdf = filesdf.drop(columns=['contents_split', 'contents'])
+corpusdf[['metadata', 'body']] = pd.DataFrame(corpusdf.contents_split.tolist(), index=corpusdf.index)
+corpusdf = corpusdf.drop(columns=['contents_split', 'contents'])
 
 # grab the best pass at the title, and convert all so only the first word is capitalised
-filesdf = filesdf.assign(title=filesdf['metadata'].map(lambda x: x.partition('\n')[0].capitalize()))
+corpusdf = corpusdf.assign(title=corpusdf['metadata'].map(lambda x: x.partition('\n')[0].capitalize()))
 
 # get date/month from the relevant directory of the filepath
-filename_fields = filesdf["filename"].apply(parse_filename)
-filesdf = filesdf.assign(**filename_fields)
+filename_fields = corpusdf["filename"].apply(parse_filename)
+corpusdf = corpusdf.assign(**filename_fields)
 # extract the four digit code from the filename
-filesdf = filesdf.assign(fourdigitcode=filesdf['filename'].map(get_text4digitcode))
+corpusdf = corpusdf.assign(fourdigitcode=corpusdf['filename'].map(get_text4digitcode))
 
 # where are the bylines?
 # code used for eda but not needed later
-# filesdf = filesdf.assign(byline_locs = filesdf['contents_split'].map(lambda x: where_is_byline(x)))
-# filesdf['bylines_flat'] = [','.join(map(str, l)) for l in filesdf['byline_locs']]
-filesdf = filesdf.assign(byline=filesdf['metadata'].map(lambda x: get_byline(x)))
+# corpusdf = corpusdf.assign(byline_locs = corpusdf['contents_split'].map(lambda x: where_is_byline(x)))
+# corpusdf['bylines_flat'] = [','.join(map(str, l)) for l in corpusdf['byline_locs']]
+corpusdf = corpusdf.assign(byline=corpusdf['metadata'].map(lambda x: get_byline(x)))
 # lots of room to clean bylines if needed/desired...
 
 # the below results in an empty set
-# asciibodies = filesdf[filesdf.encoding == "ascii"].body.tolist()
+# asciibodies = corpusdf[corpusdf.encoding == "ascii"].body.tolist()
 # set([item for sublist in [re.findall(r'[^\x00-\x7F]+',x) for x in asciibodies]  for item in sublist])
 
 # clean up non-unicode characters
-filesdf["body"] = filesdf["body"].apply(clean_nonascii)
-filesdf["title"] = filesdf["title"].apply(clean_nonascii)
-filesdf["metadata"] = filesdf["metadata"].apply(clean_nonascii)
+apply_to_titlebody(corpusdf, clean_nonascii)
+corpusdf["metadata"] = corpusdf["metadata"].apply(clean_nonascii)
 
 # get rid of newlines at start and end of body & title
-filesdf["body"] = filesdf["body"].apply(strip_newlines)
-filesdf["title"] = filesdf["title"].apply(strip_newlines)
+apply_to_titlebody(corpusdf, strip_newlines)
 # clean up quotes
-filesdf["body"] = filesdf["body"].apply(clean_quotes)
-filesdf["title"] = filesdf["title"].apply(clean_quotes)
+apply_to_titlebody(corpusdf, clean_quotes)
 # and the random repeats of "&quot;"
-filesdf["title"] = filesdf["title"].apply(clean_quot)
-filesdf["body"] = filesdf["body"].apply(clean_quot)
+apply_to_titlebody(corpusdf, clean_quot)
 # and replace six ?????? specifically with double quotes...
-filesdf["body"] = filesdf["body"].apply(replace_six_questionmarks)
+corpusdf["body"] = corpusdf["body"].apply(replace_six_questionmarks)
 # and replace multiple dashes with just one
-filesdf["body"] = filesdf["body"].apply(lambda x: (re.sub(r'-+', '-', x)))
-# and then replace ampersands with safe replacements
-filesdf["title"] = filesdf["title"].apply(lambda x: (re.sub(r'&', '&amp;', x)))
-filesdf["body"] = filesdf["body"].apply(lambda x: (re.sub(r'&', '&amp;', x)))
-
+corpusdf["body"] = corpusdf["body"].apply(lambda x: (re.sub(r'-+', '-', x)))
+# replace some odd Western Australia quote/text box, observed in the titles
+apply_to_titlebody(corpusdf, clean_wa)
 
 # get dates
-filesdf['date'] = filesdf["metadata"].apply(get_date)
+corpusdf['date'] = corpusdf["metadata"].apply(get_date)
 # some may not parse
-print("The total number of files where we were unable to find a date in the metadata was ", sum(filesdf.date.isna()), "files.")
+print("The total number of files where we were unable to find a date in the metadata was ", sum(corpusdf.date.isna()), "files.")
 print("These will be replaced from the filename, setting the date to the 1st of the month.")
 # if unable to be detected replace with the first of the month and year that exists in the filename
 # at least for this corpus - 1 file, no date in raw file
-filesdf['tmpdate'] = filesdf.apply(lambda x: (datetime.strptime(str(x['year'] + "-" + x['numeric_month'] + "-01 00:00:00"), "%Y-%m-%d %H:%M:%S")), axis=1)
-filesdf['date'] = filesdf['date'].fillna(filesdf['tmpdate'])
-filesdf.drop('tmpdate', axis=1, inplace=True)
+corpusdf['tmpdate'] = corpusdf.apply(lambda x: (datetime.strptime(str(x['year'] + "-" + x['numeric_month'] + "-01 00:00:00"), "%Y-%m-%d %H:%M:%S")), axis=1)
+corpusdf['date'] = corpusdf['date'].fillna(corpusdf['tmpdate'])
+corpusdf.drop('tmpdate', axis=1, inplace=True)
 
 # clean page references and social media references
-filesdf["body"] = filesdf["body"].apply(clean_page_splits)
-filesdf["body"] = filesdf["body"].apply(clean_redundant_phrases)
+corpusdf["body"] = corpusdf["body"].apply(clean_page_splits)
+corpusdf["body"] = corpusdf["body"].apply(clean_redundant_phrases)
 
 # wordcount
 # extract length from metadata
-filesdf = filesdf.assign(wordcount_from_metatata=filesdf['metadata'].map(lambda x: get_wordcount_from_metadata(x)))
+corpusdf = corpusdf.assign(wordcount_from_metatata=corpusdf['metadata'].map(lambda x: get_wordcount_from_metadata(x)))
 # Get a basic word count of the body (note: without title)
-filesdf['wordcount_body'] = filesdf['body'].str.count(' ') + 1
-filesdf['wordcount_title'] = filesdf['title'].str.count(' ') + 1
-filesdf['wordcount_total'] = filesdf.loc[:,['wordcount_body','wordcount_title']].sum(axis=1)
+corpusdf['wordcount_body'] = corpusdf['body'].str.count(' ') + 1
+corpusdf['wordcount_title'] = corpusdf['title'].str.count(' ') + 1
+corpusdf['wordcount_total'] = corpusdf.loc[:,['wordcount_body','wordcount_title']].sum(axis=1)
 
 # can use the below functions to narrow down issues ---
-# find_problems(start, end, colname = "cleaned_bodies", filesdf = filesdf)
-# find_specific_character_with_preceding(character, start, end, colname = "cleaned_bodies", filesdf = filesdf)
-# find_specific_character_wout_preceding(character, start, end, colname = "cleaned_bodies", filesdf = filesdf)
-# find_filename_from_string(string, filesdf = filesdf)
-# print_body_from_string(string, filesdf = filesdf)
+# find_problems(start, end, colname = "cleaned_bodies", corpusdf = corpusdf)
+# find_specific_character_with_preceding(character, start, end, colname = "cleaned_bodies", corpusdf = corpusdf)
+# find_specific_character_wout_preceding(character, start, end, colname = "cleaned_bodies", corpusdf = corpusdf)
+# find_filename_from_string(string, corpusdf = corpusdf)
+# print_body_from_string(string, corpusdf = corpusdf)
 
 # count how many times words of interest appear in the body
-filesdf['obesity_body_count'] = count_keywords(filesdf['body'], 'obesity')
-filesdf['obesogen_body_count'] = count_keywords(filesdf['body'], 'obesogen')
-filesdf['obese_body_count'] = count_keywords(filesdf['body'], 'obese')
-filesdf['keywords_sum_body'] = filesdf.obesity_body_count + filesdf.obesogen_body_count + filesdf.obese_body_count
+corpusdf['obesity_body_count'] = count_keywords(corpusdf['body'], 'obesity')
+corpusdf['obesogen_body_count'] = count_keywords(corpusdf['body'], 'obesogen')
+corpusdf['obese_body_count'] = count_keywords(corpusdf['body'], 'obese')
+corpusdf['keywords_sum_body'] = corpusdf.obesity_body_count + corpusdf.obesogen_body_count + corpusdf.obese_body_count
 #
-filesdf['obesity_in_title'] = count_keywords(filesdf['title'], 'obesity')
-filesdf['obesogen_in_title'] = count_keywords(filesdf['title'], 'obesogen')
-filesdf['obese_in_title'] = count_keywords(filesdf['title'], 'obese')
-filesdf['keywords_sum_title'] = filesdf.obesity_in_title + filesdf.obesogen_in_title + filesdf.obese_in_title
+corpusdf['obesity_in_title'] = count_keywords(corpusdf['title'], 'obesity')
+corpusdf['obesogen_in_title'] = count_keywords(corpusdf['title'], 'obesogen')
+corpusdf['obese_in_title'] = count_keywords(corpusdf['title'], 'obese')
+corpusdf['keywords_sum_title'] = corpusdf.obesity_in_title + corpusdf.obesogen_in_title + corpusdf.obese_in_title
 #
-filesdf['keywords_sum_total'] = filesdf.keywords_sum_body + filesdf.keywords_sum_title
+corpusdf['keywords_sum_total'] = corpusdf.keywords_sum_body + corpusdf.keywords_sum_title
 
+
+# generate an text_id as per cqpweb specifications/Andrew Hardie email
+corpusdf['shortcode'] = abbreviate_source(corpusdf, "source")
+# make a padded rownumber column so max is the same as number of articles in the FINAL corpus
+corpusdf['rownumber'] = np.arange(len(corpusdf)).astype(str)
+corpusdf['rownumber'] = corpusdf['rownumber'].str.zfill(5)
+# and a full id for each article - ex GU0801004
+corpusdf['text_id'] =  corpusdf['shortcode'] + corpusdf['year'].apply(lambda x: x[2:]) + corpusdf['numeric_month'] + corpusdf['rownumber']
 
 
 # write corpus out as per client's request
-write_corpus_titlebody(df=filesdf, directoryname="corpus-titlebody")
-cqpweb_metadata(df = filesdf, directoryname="corpus-titlebody")
-write_corpus_sketchengine(df=filesdf, directoryname="corpus-sketchengine")
-write_corpus_nested(df=filesdf, directoryname="corpus-nested")
+write_corpus_titlebody(df=corpusdf, directoryname="corpus-titlebody")
+write_corpus_cqpweb(df = corpusdf, directoryname="corpus-cqpweb")
+write_corpus_sketchengine(df=corpusdf, directoryname="corpus-sketchengine")
+write_corpus_nested(df=corpusdf, directoryname="corpus-nested")
 
-filesdf.to_pickle("../200_data_clean/filesdf.pickle")
+corpusdf.to_pickle("../200_data_clean/corpusdf.pickle")
 
 # copy to cloudstor
 # very fragile local link :(
