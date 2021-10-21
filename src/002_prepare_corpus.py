@@ -79,9 +79,6 @@ apply_to_titlebody(corpusdf, clean_quot)
 corpusdf["body"] = corpusdf["body"].apply(replace_six_questionmarks)
 # and replace multiple dashes with just one
 corpusdf["body"] = corpusdf["body"].apply(lambda x: (re.sub(r'-+', '-', x)))
-# and then replace ampersands with safe replacements
-clean_amp = lambda x: (re.sub(r'&', '&amp;', x))
-apply_to_titlebody(corpusdf, clean_amp)
 # replace some odd Western Australia quote/text box, observed in the titles
 apply_to_titlebody(corpusdf, clean_wa)
 

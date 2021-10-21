@@ -136,7 +136,6 @@ def clean_quotes(column):
     mytext = mytext.replace("''", "\"")
     # single quote
     mytext = mytext.replace("`", "'")
-
     return mytext
 
 def clean_wa(column):
@@ -146,8 +145,6 @@ def clean_wa(column):
     mytext = re.sub('; {2}-----QUOTE----', '', mytext, flags=re.IGNORECASE)
     mytext = re.sub(';  -----info box----', '', mytext, flags=re.IGNORECASE)
     return mytext
-
-
 
 def clean_quot(column):
     '''
@@ -314,12 +311,28 @@ def cqpweb_metadata(df, directoryname="corpus-titlebody"):
     outputdf.to_csv(f'../200_data_clean/{directoryname}_metadata.csv', index=False)
     outputdf.to_csv(f'../200_data_clean/{directoryname}_metadata.tsv', sep='\t', index=False)
 
+def clean_unsafe(df):
+    """
+    Cleans markup that could be unsafe in sgml
+    """
+    # Replace ampersands with safe replacements
+    clean_amp = lambda x: (re.sub(r'&', '&amp;', x))
+    apply_to_titlebody(df, clean_amp)
+    # Replace >
+    clean_gt = lambda x: (re.sub(r'>', '&gt;', x))
+    apply_to_titlebody(df, clean_gt)
+    # Replace <
+    clean_lt = lambda x: (re.sub(r'<', '&lt;', x))
+    apply_to_titlebody(df, clean_lt)
+    return df
 
 def write_corpus_sketchengine(df, directoryname="corpus-sketchengine"):
     '''
     Writes our corpus with title and body, with tags in the format accepted by sketch engine
     '''
     archive = zipfile.ZipFile(f"../200_data_clean/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
+    # Cleans markup that could be unsafe in sgml
+    df = clean_unsafe(df)
     for index, row in df.iterrows():
         outputfilename = standard_outputfilename(row)
         sketchenginetags = '<doc date="' + row['date'].strftime("%Y-%m-%d") + '" publication="' + row['source'] + '" wordcountTotal="' + str(row['wordcount_total']) + '">'
