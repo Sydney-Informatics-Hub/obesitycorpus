@@ -1,14 +1,14 @@
 import datetime
-from bs4 import UnicodeDammit
-import re
-import spacy
-from spacy.tokens import Span
-import pandas as pd
-from unidecode import unidecode
-import unicodedata
-import dateparser
-import zipfile
 import os
+import re
+import unicodedata
+import zipfile
+
+import dateparser
+import pandas as pd
+from bs4 import UnicodeDammit
+from unidecode import unidecode
+
 
 def obesitylist(*args):
     mylist = ['obesity', 'obese', "obesogenic", "obesogen"]
@@ -27,15 +27,16 @@ def readfilesin(file_path, encoding):
     else:
         try:
             with open(file_path, 'rb') as non_unicode_file:
-                content = non_unicode_file.read(1024)
+                content = non_unicode_file.read()
                 dammit = UnicodeDammit(content, ['Windows-1252'])
                 data = dammit.unicode_markup
         except Exception as e:
             raise ValueError('Can\'t return dictionary from empty or invalid file %s due to %s' % (file_path, e))
     return data.replace("\r", "").replace("\nClassification\n\n\n", "").strip()
 
-
 def convert_month(month):
+    # TODO get this to use pandas.to_datetime is your friend (and dateutil which underlies it).
+    # even though this isn't coming from Pandas...
     if month in ["Jan", "Feb", "Mar", "Apr", "May",
                  "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]:
         return (datetime.datetime.strptime(month, "%b").strftime("%m"))
@@ -44,7 +45,6 @@ def convert_month(month):
         return (datetime.datetime.strptime(month, "%B").strftime("%m"))
     else:
         print("The following month name is not valid: '", month, "'")
-
 
 def where_is_byline(contentslist):
     tmplist = [x.lower().find('byline') for x in contentslist]
@@ -152,8 +152,7 @@ def clean_page_splits(bodytext):
     # note that text byline is duplicated in this example between the two page references!
     bodytext = re.sub(r'\nContinued Page \d+\n\w+.*\nFrom Page \d+\n', ' ', bodytext)
     # canberra times
-    bodytext = re.sub(r'\nFrom Page\d+ ', ' ', bodytext)
-    bodytext = re.sub(r'\nFrom Page \d+ ', ' ', bodytext)
+    bodytext = re.sub(r'\nFrom Page ?\d+ ', ' ', bodytext)
     # Herald sun (also matches Hobart Mercury)
     bodytext = re.sub(r'\nContinued Page \d+\nFrom Page \d+\n', ' ', bodytext)
     bodytext = re.sub(r'\nContinued Page \d+ From Page \d+\n', ' ', bodytext)
@@ -186,7 +185,6 @@ def replace_six_questionmarks(column):
     # [^?](\?){6}[^?] TODO 
     mytext = re.sub(r'[^?](\?){6}[^?]', '"', column)
     return mytext
-
 
 def make_slug(s):
     # Remove all non-word characters (everything except numbers and letters)
@@ -249,38 +247,38 @@ def get_date(string):
         "(Jan(uary)?|Feb(ruary)?|Mar(ch)?|Apr(il)?|May|Jun(e)?|"
         "Jul(y)?|Aug(ust)?|Sep(tember)?|Oct(ober)?|Nov(ember)?|"
         "Dec(ember)?)\s+\d{1,2},\s+\d{4}")
-    if pattern.search(string) is not None:
-        return dateparser.parse(pattern.search(string).group())
+    if (match := pattern.search(string)) is not None:
+        return dateparser.parse(match.group())
     else:
         return None
 
 
-def write_corpus_titlebody(df, directoryname="corpus-titlebody"):
+def write_corpus_titlebody(df, cleandatapath, directoryname="corpus-titlebody"):
     '''
     Writes our corpus with title and body, without any tags or metadata
     '''
-    archive = zipfile.ZipFile(f"../200_data_clean/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
+    archive = zipfile.ZipFile(f"{cleandatapath}/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
     for index, row in df.iterrows():
         outputfilename = f"{row.source}_{row.year}_{row.numeric_month}_{row.fourdigitcode}_{make_slug(row.title)}.txt"
         content = row['title'] + row['body']
         archive.writestr(outputfilename, content)
     archive.close()
 
-def write_corpus_nested(df, directoryname="corpus-nested"):
+def write_corpus_nested(df, cleandatapath, directoryname="corpus-nested"):
     '''
     Writes our corpus with title and body, nested by source/year/month
     '''
     for index, row in df.iterrows():
-        outputdir = "../200_data_clean/" + directoryname + f"/{row.source}/{row.year}/{row.numeric_month}/"
-        outputfilename = outputdir + f"{row.fourdigitcode}_{make_slug(row.title)}.txt"
+        outputdir = str(cleandatapath) + "/" + directoryname + f"/{row.source}/{row.year}/{row.numeric_month}/"
+        outputfilename = outputdir +  f"{row.fourdigitcode}_{make_slug(row.title)}.txt"
         os.makedirs(os.path.dirname(outputdir), exist_ok=True)
-        content = row['title'] + row['body']
+        content = row['title'] + "\n" + row['body']
         f = open(outputfilename, 'w', encoding='utf-8')
         f.write(content)
         f.close()
 
 
-def cqpweb_metadata(df, directoryname="corpus-titlebody"):
+def cqpweb_metadata(df, cleandatapath, directoryname="corpus-titlebody"):
     '''
     Writes our corpus with title and body, without any tags or metadata
     '''
@@ -289,14 +287,14 @@ def cqpweb_metadata(df, directoryname="corpus-titlebody"):
     outputdf['slug'] = outputdf['title'].apply(lambda x: make_slug(x))
     outputdf['outputputfile'] = outputdf[['source', 'year', 'numeric_month', 'fourdigitcode', 'slug']].agg('_'.join, axis=1)
     outputdf.drop(['filename', 'encoding','confidence','fullpath','fourdigitcode','year','numeric_month','body'], axis=1, inplace=True)
-    outputdf.to_csv(f'../200_data_clean/{directoryname}_metadata.csv', index=False)
+    outputdf.to_csv(f'{cleandatapath}/{directoryname}_metadata.csv', index=False)
 
 
-def write_corpus_sketchengine(df, directoryname="corpus-sketchengine"):
+def write_corpus_sketchengine(df, cleandatapath, directoryname="corpus-sketchengine"):
     '''
     Writes our corpus with title and body, with tags in the format accepted by sketch engine
     '''
-    archive = zipfile.ZipFile(f"../200_data_clean/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
+    archive = zipfile.ZipFile(f"{cleandatapath}/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
     for index, row in df.iterrows():
         outputfilename = f"{row.source}_{row.year}_{row.numeric_month}_{row.fourdigitcode}_{make_slug(row.title)}.txt"
         sketchenginetags = '<doc date="' + row['date'].strftime("%Y-%m-%d") + '" publication="' + row['source'] + '" wordcountTotal="' + str(row['wordcount_total']) + '">'
