@@ -1,9 +1,10 @@
 import pandas as pd
+import numpy as np
 from utils import get_project_root
 from functs import get_byline, parse_filename, readfilesin, make_slug
 from functs import get_text4digitcode, clean_nonascii, clean_quotes, get_date, clean_quot, replace_six_questionmarks
-from functs import write_corpus_titlebody, write_corpus_sketchengine, get_wordcount_from_metadata, cqpweb_metadata, write_corpus_nested
-from functs import clean_page_splits, clean_redundant_phrases, count_keywords, strip_newlines, apply_to_titlebody
+from functs import write_corpus_titlebody, write_corpus_sketchengine, get_wordcount_from_metadata, write_corpus_cqpweb, write_corpus_nested
+from functs import clean_page_splits, clean_redundant_phrases, count_keywords, strip_newlines, apply_to_titlebody, abbreviate_source
 from functs import clean_wa
 from datetime import datetime
 import re
@@ -126,10 +127,18 @@ corpusdf['keywords_sum_title'] = corpusdf.obesity_in_title + corpusdf.obesogen_i
 corpusdf['keywords_sum_total'] = corpusdf.keywords_sum_body + corpusdf.keywords_sum_title
 
 
+# generate an text_id as per cqpweb specifications/Andrew Hardie email
+corpusdf['shortcode'] = abbreviate_source(corpusdf, "source")
+# make a padded rownumber column so max is the same as number of articles in the FINAL corpus
+corpusdf['rownumber'] = np.arange(len(corpusdf)).astype(str)
+corpusdf['rownumber'] = corpusdf['rownumber'].str.zfill(5)
+# and a full id for each article - ex GU0801004
+corpusdf['text_id'] =  corpusdf['shortcode'] + corpusdf['year'].apply(lambda x: x[2:]) + corpusdf['numeric_month'] + corpusdf['rownumber']
+
 
 # write corpus out as per client's request
 write_corpus_titlebody(df=corpusdf, directoryname="corpus-titlebody")
-cqpweb_metadata(df = corpusdf, directoryname="corpus-titlebody")
+write_corpus_cqpweb(df = corpusdf, directoryname="corpus-cqpweb")
 write_corpus_sketchengine(df=corpusdf, directoryname="corpus-sketchengine")
 write_corpus_nested(df=corpusdf, directoryname="corpus-nested")
 
