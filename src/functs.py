@@ -152,8 +152,7 @@ def clean_page_splits(bodytext):
     # note that text byline is duplicated in this example between the two page references!
     bodytext = re.sub(r'\nContinued Page \d+\n\w+.*\nFrom Page \d+\n', ' ', bodytext)
     # canberra times
-    bodytext = re.sub(r'\nFrom Page\d+ ', ' ', bodytext)
-    bodytext = re.sub(r'\nFrom Page \d+ ', ' ', bodytext)
+    bodytext = re.sub(r'\nFrom Page ?\d+ ', ' ', bodytext)
     # Herald sun (also matches Hobart Mercury)
     bodytext = re.sub(r'\nContinued Page \d+\nFrom Page \d+\n', ' ', bodytext)
     bodytext = re.sub(r'\nContinued Page \d+ From Page \d+\n', ' ', bodytext)
