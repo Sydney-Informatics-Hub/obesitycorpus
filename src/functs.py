@@ -1,15 +1,14 @@
 import datetime
-from bs4 import UnicodeDammit
+import os
 import re
 import spacy
 from spacy.tokens import Span
 import pandas as pd
 import numpy as np
-from unidecode import unidecode
-import unicodedata
-import dateparser
 import zipfile
-import os
+import dateparser
+from bs4 import UnicodeDammit
+from unidecode import unidecode
 
 def obesitylist(*args):
     mylist = ['obesity', 'obese', "obesogenic", "obesogen"]
@@ -53,8 +52,9 @@ def readfilesin(file_path, encoding):
             raise ValueError('Can\'t return dictionary from empty or invalid file %s due to %s' % (file_path, e))
     return data.replace("\r", "").replace("\nClassification\n\n\n", "").strip()
 
-
 def convert_month(month):
+    # TODO get this to use pandas.to_datetime is your friend (and dateutil which underlies it).
+    # even though this isn't coming from Pandas...
     if month in ["Jan", "Feb", "Mar", "Apr", "May",
                  "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]:
         return (datetime.datetime.strptime(month, "%b").strftime("%m"))
@@ -185,8 +185,7 @@ def clean_page_splits(bodytext):
     # note that text byline is duplicated in this example between the two page references!
     bodytext = re.sub(r'\nContinued Page \d+\n\w+.*\nFrom Page \d+\n', ' ', bodytext)
     # canberra times
-    bodytext = re.sub(r'\nFrom Page\d+ ', ' ', bodytext)
-    bodytext = re.sub(r'\nFrom Page \d+ ', ' ', bodytext)
+    bodytext = re.sub(r'\nFrom Page ?\d+ ', ' ', bodytext)
     # Herald sun (also matches Hobart Mercury)
     bodytext = re.sub(r'\nContinued Page \d+\nFrom Page \d+\n', ' ', bodytext)
     bodytext = re.sub(r'\nContinued Page \d+ From Page \d+\n', ' ', bodytext)
@@ -219,9 +218,6 @@ def replace_six_questionmarks(column):
     # [^?](\?){6}[^?] TODO 
     mytext = re.sub(r'[^?](\?){6}[^?]', '"', column)
     return mytext
-
-def count_keywords(series, keyword):
-    return series.map(lambda x: x.lower().count(keyword))
 
 def make_slug(s):
     # Remove all non-word characters (everything except numbers and letters)
@@ -282,32 +278,32 @@ def get_date(string):
         "(Jan(uary)?|Feb(ruary)?|Mar(ch)?|Apr(il)?|May|Jun(e)?|"
         "Jul(y)?|Aug(ust)?|Sep(tember)?|Oct(ober)?|Nov(ember)?|"
         "Dec(ember)?)\s+\d{1,2},\s+\d{4}")
-    if pattern.search(string) is not None:
-        return dateparser.parse(pattern.search(string).group())
+    if (match := pattern.search(string)) is not None:
+        return dateparser.parse(match.group())
     else:
         return None
 
 
-def write_corpus_titlebody(df, directoryname="corpus-titlebody"):
+def write_corpus_titlebody(df, cleandatapath, directoryname="corpus-titlebody"):
     '''
     Writes our corpus with title and body, without any tags or metadata
     '''
-    archive = zipfile.ZipFile(f"../200_data_clean/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
+    archive = zipfile.ZipFile(f"{cleandatapath}/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
     for index, row in df.iterrows():
         outputfilename = standard_outputfilename(row)
         content = row['title'] + row['body']
         archive.writestr(outputfilename, content)
     archive.close()
 
-def write_corpus_nested(df, directoryname="corpus-nested"):
+def write_corpus_nested(df, cleandatapath, directoryname="corpus-nested"):
     '''
     Writes our corpus with title and body, nested by source/year/month
     '''
     for index, row in df.iterrows():
-        outputdir = "../200_data_clean/" + directoryname + f"/{row.source}/{row.year}/{row.numeric_month}/"
+        outputdir = str(cleandatapath) + "/" + directoryname + f"/{row.source}/{row.year}/{row.numeric_month}/"
         outputfilename = outputdir + standard_outputfilename(row)
         os.makedirs(os.path.dirname(outputdir), exist_ok=True)
-        content = row['title'] + row['body']
+        content = row['title'] + "\n" + row['body']
         f = open(outputfilename, 'w', encoding='utf-8')
         f.write(content)
         f.close()
@@ -327,11 +323,12 @@ def clean_unsafe(df):
     apply_to_titlebody(df, clean_lt)
     return df
 
-def write_corpus_cqpweb(df, directoryname="corpus-cqpweb"):
+def write_corpus_cqpweb(df, cleandatapath, directoryname="corpus-cqpweb"):
     '''
     Writes our corpus and metadata as per CQP web sample format
     '''
-    archive = zipfile.ZipFile(f"../200_data_clean/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
+    outputpath = str(cleandatapath) + "/"
+    archive = zipfile.ZipFile(f"{outputpath}{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
     # Cleans markup that could be unsafe in sgml
     df = clean_unsafe(df)
     for index, row in df.iterrows():
@@ -348,17 +345,18 @@ def write_corpus_cqpweb(df, directoryname="corpus-cqpweb"):
     # get rid of the index column & some unnecessary columns
     df = df.loc[:, ~df.columns.str.match('Unnamed')]
     df.drop(['filename', 'encoding','confidence','fullpath','fourdigitcode','body'], axis=1, inplace=True)
-    df.to_csv(f'../200_data_clean/{directoryname}_metadata.csv', index=False)
+    df.to_csv(f'{outputpath}{directoryname}_metadata.csv', index=False)
     # drop the metadata column before going to tsv for cqpweb
     df.drop(['metadata'], axis=1, inplace=True)
-    df.to_csv(f'../200_data_clean/{directoryname}_metadata.tsv', sep='\t', index=False)
+    df.to_csv(f'{outputpath}{directoryname}_metadata.tsv', sep='\t', index=False)
 
-def write_corpus_sketchengine(df, directoryname="corpus-sketchengine"):
+
+def write_corpus_sketchengine(df, cleandatapath, directoryname="corpus-sketchengine"):
     '''
     Writes our corpus with title and body, with tags in the format accepted by sketch engine
     '''
-    archive = zipfile.ZipFile(f"../200_data_clean/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
     # Cleans markup that could be unsafe in sgml
+    archive = zipfile.ZipFile(f"{cleandatapath}/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
     df = clean_unsafe(df)
     for index, row in df.iterrows():
         outputfilename = standard_outputfilename(row)
