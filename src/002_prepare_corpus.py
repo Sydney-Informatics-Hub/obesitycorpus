@@ -85,11 +85,8 @@ print("The total number of files where we were unable to find a date in the meta
 print("These will be replaced from the filename, setting the date to the 1st of the month.")
 # if unable to be detected replace with the first of the month and year that exists in the filename
 # at least for this corpus - 1 file, no date in raw file
-filesdf['tmpdate'] = filesdf.apply(
-    lambda x: (datetime.strptime(str(x['year'] + "-" + x['numeric_month'] + "-01 00:00:00"), "%Y-%m-%d %H:%M:%S")),
-    axis=1)
-filesdf['date'] = filesdf['date'].fillna(filesdf['tmpdate'])
-filesdf.drop('tmpdate', axis=1, inplace=True)
+tmpdate = filesdf.apply(lambda x: (datetime.strptime(str(x['year'] + "-" + x['numeric_month'] + "-01 00:00:00"), "%Y-%m-%d %H:%M:%S")), axis=1)
+filesdf['date'] = filesdf['date'].fillna(tmpdate)
 
 # clean page references and social media references
 filesdf["body"] = filesdf["body"].apply(clean_page_splits)
