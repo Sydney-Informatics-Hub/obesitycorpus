@@ -9,6 +9,7 @@ import zipfile
 import dateparser
 from bs4 import UnicodeDammit
 from unidecode import unidecode
+import unicodedata
 
 def obesitylist(*args):
     mylist = ['obesity', 'obese', "obesogenic", "obesogen"]

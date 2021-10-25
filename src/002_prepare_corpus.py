@@ -4,7 +4,7 @@ from utils import get_project_root
 from functs import get_byline, parse_filename, readfilesin
 from functs import get_text4digitcode, clean_nonascii, clean_quotes, get_date, clean_quot, replace_six_questionmarks
 from functs import write_corpus_titlebody, write_corpus_sketchengine, get_wordcount_from_metadata, write_corpus_cqpweb, write_corpus_nested
-from functs import clean_page_splits, clean_redundant_phrases, count_keywords, strip_newlines, apply_to_titlebody, abbreviate_source
+from functs import clean_page_splits, clean_redundant_phrases, strip_newlines, apply_to_titlebody, abbreviate_source, obesitylist
 from functs import clean_wa
 from datetime import datetime
 import re
@@ -132,10 +132,10 @@ corpusdf['keywords_sum_title'] = corpusdf.loc[:, corpusdf.columns.str.endswith('
 corpusdf['keywords_sum_total'] = corpusdf.keywords_sum_body + corpusdf.keywords_sum_title
 
 # write corpus out as per client's request
-write_corpus_titlebody(df=corpusdf, directoryname="corpus-titlebody")
-write_corpus_cqpweb(df = corpusdf, directoryname="corpus-cqpweb")
-write_corpus_sketchengine(df=corpusdf, directoryname="corpus-sketchengine")
-write_corpus_nested(df=corpusdf, directoryname="corpus-nested")
+write_corpus_titlebody(df=corpusdf, cleandatapath=cleandatapath, directoryname="corpus-titlebody")
+write_corpus_cqpweb(df = corpusdf, cleandatapath=cleandatapath, directoryname="corpus-cqpweb")
+write_corpus_sketchengine(df=corpusdf, cleandatapath=cleandatapath, directoryname="corpus-sketchengine")
+write_corpus_nested(df=corpusdf, cleandatapath=cleandatapath, directoryname="corpus-nested")
 
 corpusdf.to_pickle(str(cleandatapath / "corpusdf.pickle"))
 
