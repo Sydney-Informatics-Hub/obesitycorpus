@@ -12,7 +12,8 @@ from unidecode import unidecode
 import unicodedata
 
 def obesitylist(*args):
-    mylist = ['obesity', 'obese', "obesogenic", "obesogen"]
+    # nb: obesogen will also pick up obesogenic
+    mylist = ["obesity","obesity's", "obese", "obesogen"]
     for x in args:
         mylist.append(x)
     return mylist
@@ -94,16 +95,16 @@ def get_wordcount_from_metadata(contents):
         return None
 
 def standard_outputfilename(row):
-    return f"{row.source}_{row.year}_{row.numeric_month}_{row.fourdigitcode}_{make_slug(row.title)}.txt"
+    return f"{row.source}_{row.year}_{row.original_numeric_month}_{row.fourdigitcode}_{make_slug(row.title)}.txt"
 
 def parse_filename(path):
     source, year, month = path.split('/')[2].split("_")
     month = month.replace("txt", "").strip()
-    numeric_month = convert_month(month)
+    original_numeric_month = convert_month(month)
     return pd.Series({
         "source": source,
         "year": year,
-        "numeric_month": numeric_month
+        "original_numeric_month": original_numeric_month
     })
 
 
@@ -301,7 +302,7 @@ def write_corpus_nested(df, cleandatapath, directoryname="corpus-nested"):
     Writes our corpus with title and body, nested by source/year/month
     '''
     for index, row in df.iterrows():
-        outputdir = str(cleandatapath) + "/" + directoryname + f"/{row.source}/{row.year}/{row.numeric_month}/"
+        outputdir = str(cleandatapath) + "/" + directoryname + f"/{row.source}/{row.year}/{row.month_metadata}/"
         outputfilename = outputdir + standard_outputfilename(row)
         os.makedirs(os.path.dirname(outputdir), exist_ok=True)
         content = row['title'] + "\n" + row['body']
@@ -335,20 +336,21 @@ def write_corpus_cqpweb(df, cleandatapath, directoryname="corpus-cqpweb"):
     for index, row in df.iterrows():
         outputfilename = standard_outputfilename(row)
         cqpwebtags = '<text id="' + row['text_id'] + '">\n'
-        content = cqpwebtags + row['body'] + "\n</text>\n"
+        content = cqpwebtags + '<head>' + row['title'] + '</head>\n<body>\n' + row['body'] + "\n</body>\n</text>\n"
         archive.writestr(outputfilename, content)
     archive.close()
     # create an extra column as per CQP web sample file
-    df['yearmo'] = df.year + df.numeric_month
+    # use the real date here
+    df['yearmo'] = df.year + df.month_metadata
     # reorder columns so ones Andrew requires are placed first
-    andrewcols = ['text_id', 'shortcode', 'year', 'numeric_month', 'yearmo', 'rownumber']
+    andrewcols = ['text_id', 'shortcode', 'year', 'month_metadata', 'yearmo', 'rownumber']
     df = df[ andrewcols + [ col for col in df.columns if col not in andrewcols]]
     # get rid of the index column & some unnecessary columns
     df = df.loc[:, ~df.columns.str.match('Unnamed')]
-    df.drop(['filename', 'encoding','confidence','fullpath','fourdigitcode','body'], axis=1, inplace=True)
+    df.drop(['filename','confidence','fullpath','fourdigitcode','body'], axis=1, inplace=True)
     df.to_csv(f'{outputpath}{directoryname}_metadata.csv', index=False)
-    # drop the metadata column before going to tsv for cqpweb
-    df.drop(['metadata'], axis=1, inplace=True)
+    # drop the metadata and encoding columns before going to tsv for cqpweb
+    df.drop(['metadata', 'encoding', 'original_numeric_month'], axis=1, inplace=True)
     df.to_csv(f'{outputpath}{directoryname}_metadata.tsv', sep='\t', index=False)
 
 

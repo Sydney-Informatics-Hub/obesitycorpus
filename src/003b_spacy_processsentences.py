@@ -9,7 +9,7 @@ from functs import obesitylist, convert_month, explore_tokens
 # load data and obesity names
 corpusdf = pd.read_pickle("../200_data_clean/corpusdf.pickle")
 # drop unneccessary columns
-corpusdf = corpusdf.drop(['filename', 'encoding', 'confidence', 'fullpath','year', 'numeric_month'], axis=1)
+corpusdf = corpusdf.drop(['filename', 'encoding', 'confidence', 'fullpath','year', 'original_numeric_month'], axis=1)
 # and make a key: date_source_fourdigitcode
 sentencenlp = pd.read_pickle("sentencenlp.pkl")
 obesitynames = obesitylist()
