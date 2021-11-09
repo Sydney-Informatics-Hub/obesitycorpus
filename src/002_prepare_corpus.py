@@ -1,40 +1,38 @@
+# %%
 import pathlib
 import re
 import shutil
 from datetime import datetime
 import numpy as np
 import pandas as pd
-from functs import clean_page_splits , clean_redundant_phrases , strip_newlines , apply_to_titlebody , \
-    abbreviate_source , obesitylist
+from functs import clean_page_splits , clean_redundant_phrases , strip_newlines , apply_to_titlebody, abbreviate_source , obesitylist
 from functs import clean_wa
-from functs import get_byline , parse_filename , readfilesin
-from functs import get_text4digitcode , clean_nonascii , clean_quotes , get_date , clean_quot , \
-    replace_six_questionmarks
-from functs import write_corpus_titlebody , write_corpus_sketchengine , get_wordcount_from_metadata , \
-    write_corpus_cqpweb , write_corpus_nested
+from functs import get_byline, parse_filename, readfilesin
+from functs import get_text4digitcode, clean_nonascii, clean_quotes, get_date, clean_quot, replace_six_questionmarks, remove_australian_authordeets
+from functs import write_corpus_titlebody, write_corpus_sketchengine, get_wordcount_from_metadata, write_corpus_cqpweb, write_corpus_nested
 from utils import get_project_root
+
 
 # imports for debugging non-unicode characters
 # from functs import find_problems, find_filename_from_string, find_specific_character_with_preceding, 
 # from functs import print_body_from_string, find_specific_character_wout_preceding, 
 # from functs import where_is_byline
 
+# %%
 projectroot = str(get_project_root())
 rawdatapath = pathlib.Path(projectroot + "/100_data_raw/Australian Obesity Corpus")
 cleandatapath = pathlib.Path(projectroot +  "/200_data_clean")
 processeddatapath = pathlib.Path(projectroot + "/300_data_processed")
-
 corpusdf = pd.read_csv(str(processeddatapath / 'inferred_dataset_encodings.csv'))
 
-# get column with files as full path
+
+# %% get column with files as full path
 corpusdf['fullpath'] = str(str(rawdatapath) + "/") + corpusdf['filename'].astype(str)
 print(corpusdf.shape[0])
-
 result = [readfilesin(x, y) for x, y in zip(corpusdf['fullpath'], corpusdf['encoding'])]
-
 corpusdf['contents'] = result
 
-# filter out those files that don't have the word "body" (case-insensitive) in them
+# %% filter out those files that don't have the word "body" (case-insensitive) in them
 # These are the list files and the zip file
 # write out the metadata for them for records
 dropped = corpusdf[~corpusdf['contents'].str.contains('body', case=False)]
@@ -42,7 +40,7 @@ dropped.to_csv(str(str(projectroot/cleandatapath) + '/dropped.csv'), index=False
 # then filter them out
 corpusdf = corpusdf[corpusdf['contents'].str.contains('body', case=False)]
 
-# split header and body, thankfully case-sensitive works
+# %% split header and body, thankfully case-sensitive works
 corpusdf['contents_split'] = corpusdf['contents'].str.split("\nBody\n")
 # always splits into two
 # corpusdf['contents_len'] = corpusdf['contents_split'].str.len()
@@ -50,10 +48,10 @@ corpusdf['contents_split'] = corpusdf['contents'].str.split("\nBody\n")
 corpusdf[['metadata', 'body']] = pd.DataFrame(corpusdf.contents_split.tolist(), index=corpusdf.index)
 corpusdf = corpusdf.drop(columns=['contents_split', 'contents'])
 
-# grab the best pass at the title, and convert all so only the first word is capitalised
+# %% grab the best pass at the title, and convert all so only the first word is capitalised
 corpusdf = corpusdf.assign(title=corpusdf['metadata'].map(lambda x: x.partition('\n')[0].capitalize()))
 
-# get date/month from the relevant directory of the filepath
+# %% get date/month from the relevant directory of the filepath
 filename_fields = corpusdf["filename"].apply(parse_filename)
 corpusdf = corpusdf.assign(**filename_fields)
 # extract the four digit code from the filename
@@ -68,6 +66,8 @@ corpusdf = corpusdf.assign(byline=corpusdf['metadata'].map(lambda x: get_byline(
 
 # the below results in an empty set
 assert not set([item for sublist in [re.findall(r'[^\x00-\x7F]+',x) for x in corpusdf[corpusdf.encoding == "ascii"].body.tolist()]  for item in sublist])
+
+
 
 # clean up non-unicode characters
 apply_to_titlebody(corpusdf, clean_nonascii)
@@ -88,6 +88,8 @@ apply_to_titlebody(corpusdf, clean_wa)
 # clean page references and social media references
 corpusdf["body"] = corpusdf["body"].apply(clean_page_splits)
 corpusdf["body"] = corpusdf["body"].apply(clean_redundant_phrases)
+# clean publication-specific issues
+corpusdf["body"] = corpusdf["body"].apply(remove_australian_authordeets)
 
 # get dates
 corpusdf['date'] = corpusdf["metadata"].apply(get_date)
@@ -108,7 +110,7 @@ print("The inferred and scraped months match: ", pd.to_numeric(corpusdf.original
 
 # where do the months not match?
 unmatching_months = corpusdf[pd.to_numeric(corpusdf.original_numeric_month) != corpusdf.date.dt.month]
-unmatching_months.to_csv(str(str(projectroot/cleandatapath) + "/unmatching_months.csv"))
+unmatching_months.to_csv(str(str(projectroot/cleandatapath) + "/unmatching_months.csv"), index=False)
 
 
 # look for articles where the title, byline and date from the metadata match
@@ -118,7 +120,9 @@ tmpdf = corpusdf[keys][corpusdf[keys].duplicated()]
 i1 = corpusdf.set_index(keys).index
 i2 = tmpdf.set_index(keys).index
 possible_dupes = corpusdf[i1.isin(i2)]
-possible_dupes.to_csv(str(str(projectroot/cleandatapath) + "/possible_dupes.csv"))
+# replace newlines for export
+possible_dupes = possible_dupes.replace(r'\n',' ', regex=True)
+possible_dupes.to_csv(str(str(projectroot/cleandatapath) + "/possible_dupes.csv"), index=False)
 
 
 # wordcount
@@ -161,7 +165,7 @@ corpusdf['obesity_boolean'] = corpusdf['tara_keywords_count'] >= 3
 corpusdf['regex_count'] = corpusdf["body"].str.count('[Oo][Bb][Ee][Ss]+\w') + corpusdf["title"].str.count('[Oo][Bb][Ee][Ss]+\w')
 
 differing_counts = corpusdf[corpusdf['regex_count'] != corpusdf['keywords_sum_total']]
-differing_counts.to_csv(str(str(projectroot/cleandatapath) + "/differing_counts.csv"))
+differing_counts.to_csv(str(str(projectroot/cleandatapath) + "/differing_counts.csv"), index = False)
 
 # TODO HERE: pandas first few sentences obesity count and implement Joel's counting approach
 
@@ -172,7 +176,10 @@ write_corpus_cqpweb(df = corpusdf, cleandatapath=cleandatapath, directoryname="c
 write_corpus_sketchengine(df=corpusdf, cleandatapath=cleandatapath, directoryname="corpus-sketchengine")
 write_corpus_nested(df=corpusdf, cleandatapath=cleandatapath, directoryname="corpus-nested")
 
+
+
 corpusdf.to_pickle(str(cleandatapath / "corpusdf.pickle"))
+corpusdf.to_csv(str(cleandatapath / "corpusdf.csv"), index = False)
 
 # copy to cloudstor
 # very fragile local link :(
