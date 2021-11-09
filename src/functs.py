@@ -36,12 +36,6 @@ def abbreviate_source(df, source_column):
     choices = ["HS", "SM", "AD", "CM", "AG", "CT", "AU", "WA", "HM", "TE", "NT", "BT"]
     return np.select(conditions, choices, default="Missing")
 
-def get_record_from_corpus_df(corpusdf, source, year, orinummonth, fourdigitcode):
-    '''
-    Returns a key/value dict for each column of the pandas dataframe that matches the filtering
-    '''
-    return corpusdf[(corpusdf['source'] == source) & (corpusdf['year'] == year) & (corpusdf['original_numeric_month'] == orinummonth) & (corpusdf['fourdigitcode'] == fourdigitcode)].to_dict()
-
 
 def readfilesin(file_path, encoding):
     if encoding in ['ascii', 'Windows-1252', 'ISO-8859-1']:
@@ -149,28 +143,6 @@ def strip_newlines(column):
     column = column.strip("\n")
     return column
 
-def remove_australian_authordeets(body):
-    '''
-    The Australian has extra text at the end of the body
-    deliniated by 1-2 "____" lines
-    ex. \n______________________________\n>> Christen Pears is a personal
-    trainer and pilates instructor in Western Australia.
-    This keeps only everything before the first of these in the corpus
-    '''
-    return body.split('\n______________________________\n', 1)[0]
-
-def clean_couriermail_talktous(bodytext):
-    '''
-    The courier mail provides many lines of
-    contact details at the end of it's talk to us session. Remove these.
-    '''
-    bodytext = bodytext.split('TALK TO US', 1)[0]
-    # remove additional courier mail requests for feedback
-    bodytext = re.sub(r'\nWhat do you think\? Email yournews@thesundaymail.com.au or write to us at GPO Box 130, Brisbane, 4001.', '', bodytext)
-    bodytext = re.sub(r'\nWhat do you think\? Email yournews@thesundaymail .com.au or write to us at GPO Box 130, Brisbane, 4001.', '', bodytext)
-    bodytext = re.sub(r'\nWhat do you think\? Email yournews@thesundaymail.com.au', '', bodytext)
-    return bodytext
-
 def clean_quotes(column):
     '''
     Cleans up quotes in body or title
@@ -234,14 +206,11 @@ def clean_redundant_phrases(bodytext):
     '''
     This function cleans some social media references at the end of texts that are unrelated to the content of the body.
     '''
-
     bodytext = re.sub(r'\nTo read more from Good Weekend magazine, visit our page at The Sydney Morning Herald or            The Age.', '', bodytext)
     bodytext = re.sub(r'           Stay informed. Like the Brisbane Times Facebook page           .', '', bodytext)
     # can times
     bodytext = re.sub(r'\nFollow \w.+ on Twitter and \s+ Facebook\n', ' ', bodytext)
     bodytext = re.sub(r'Follow us on Facebook', ' ', bodytext)
-    # herald sun
-    bodytext = re.sub(r'\nheraldsun.com.au\n', '', bodytext)
     return bodytext
 
 def replace_six_questionmarks(column):
