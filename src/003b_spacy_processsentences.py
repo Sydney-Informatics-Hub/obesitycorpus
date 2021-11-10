@@ -5,13 +5,17 @@ import pandas as pd
 #from spacy.tokens import Span
 #from spacytextblob.spacytextblob import SpacyTextBlob
 from functs import obesitylist, convert_month, explore_tokens
+import pathlib
+from utils import get_projectpaths
+(projectroot, rawdatapath, cleandatapath, processeddatapath) = get_projectpaths()
+
 
 # load data and obesity names
-corpusdf = pd.read_pickle("../200_data_clean/corpusdf.pickle")
+corpusdf = pd.read_pickle(str(cleandatapath/"corpusdf.pickle"))
 # drop unneccessary columns
 corpusdf = corpusdf.drop(['filename', 'encoding', 'confidence', 'fullpath','year', 'original_numeric_month'], axis=1)
 # and make a key: date_source_fourdigitcode
-sentencenlp = pd.read_pickle("sentencenlp.pkl")
+sentencenlp = pd.read_pickle(processeddatapath/"sentencenlp.pkl")
 obesitynames = obesitylist()
 
 corpusdf = corpusdf.assign(sentencenlp=sentencenlp)

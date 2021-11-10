@@ -5,8 +5,11 @@ from spacy.tokens import Span
 from spacytextblob.spacytextblob import SpacyTextBlob
 import pickle
 import functs as f
+import pathlib
+from utils import get_projectpaths
+(projectroot, rawdatapath, cleandatapath, processeddatapath) = get_projectpaths()
 
-corpusdf = pd.read_pickle("../200_data_clean/corpusdf.pickle")
+corpusdf = pd.read_pickle(cleandatapath/'corpusdf.pickle')
 
 nlp = spacy.load("en_core_web_sm")
 obesitynames = f.obesitylist()
@@ -26,5 +29,5 @@ for doc in spacyinput:
     mynlp = [nlp(x.strip()) for x in sentencelist]
     sentencenlp.append(mynlp)
 
-with open('sentencenlp.pkl', 'wb') as file:
+with open(str(processeddatapath/'sentencenlp.pkl'), 'wb') as file:
     pickle.dump(sentencenlp, file)

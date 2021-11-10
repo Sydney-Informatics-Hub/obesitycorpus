@@ -18,23 +18,22 @@ def obesitylist(*args):
         mylist.append(x)
     return mylist
 
-def abbreviate_source(df, source_column):
-    conditions = [
-        df[source_column].eq("HeraldSun"),
-        df[source_column].eq("SydHerald"),
-        df[source_column].eq("Advertiser") ,
-        df[source_column].eq("CourierMail") ,
-        df[source_column].eq("Age") ,
-        df[source_column].eq("CanTimes") ,
-        df[source_column].eq("Australian") ,
-        df[source_column].eq("WestAus") ,
-        df[source_column].eq("HobMercury") ,
-        df[source_column].eq("Telegraph"),
-        df[source_column].eq("NorthernT"),
-        df[source_column].eq("BrisTimes")
-         ]
-    choices = ["HS", "SM", "AD", "CM", "AG", "CT", "AU", "WA", "HM", "TE", "NT", "BT"]
-    return np.select(conditions, choices, default="Missing")
+def abbreviate_source(source):
+    source_to_abbr = {
+    "HeraldSun": "HS",
+    "SydHerald": "SM",
+    "Advertiser": "AD",
+    "CourierMail": "CM" ,
+    "Age": "AG",
+    "CanTimes": "CT",
+    "Australian": "AU",
+    "WestAus": "WA",
+    "HobMercury": "HM",
+    "Telegraph": "TE",
+    "NorthernT": "NT",
+    "BrisTimes": "BT"
+    }
+    return source.map(source_to_abbr).fillna("Missing")
 
 
 def readfilesin(file_path, encoding):
@@ -143,11 +142,10 @@ def strip_newlines(column):
     column = column.strip("\n")
     return column
 
-def clean_quotes(column):
+def clean_quotes(mytext):
     '''
     Cleans up quotes in body or title
     '''
-    mytext = column
     # manually checked 3 quotes are used instead of two in the corpus
     mytext = mytext.replace('```', '"')
     # two open quotes
@@ -158,19 +156,17 @@ def clean_quotes(column):
     mytext = mytext.replace("`", "'")
     return mytext
 
-def clean_wa(column):
+def clean_wa(mytext):
     # replaces some odd tags in the WA
-    mytext = column
     # replacing ";  -----QUOTE----" and ";  -----info box----" detected in the title of some of the WA articles
-    mytext = re.sub('; {2}-----QUOTE----', '', mytext, flags=re.IGNORECASE)
-    mytext = re.sub('; {2}-----info box----', '', mytext, flags=re.IGNORECASE)
+    mytext = re.sub(';  -----QUOTE----', '', mytext, flags=re.IGNORECASE)
+    mytext = re.sub(';  -----info box----', '', mytext, flags=re.IGNORECASE)
     return mytext
 
-def clean_quot(column):
+def clean_quot(mytext):
     '''
     Deals with &quot; strings in body or metadata
     '''
-    mytext = column
     mytext = mytext.replace('&quot;&quot;&quot;', '"')
     mytext = mytext.replace('&quot;&quot;', '"')
     mytext = mytext.replace('&quot;', '"')
@@ -290,7 +286,7 @@ def write_corpus_titlebody(df, cleandatapath, directoryname="corpus-titlebody"):
     '''
     Writes our corpus with title and body, without any tags or metadata
     '''
-    archive = zipfile.ZipFile(f"{cleandatapath}/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
+    archive = zipfile.ZipFile(f"{str(cleandatapath)}/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
     for index, row in df.iterrows():
         outputfilename = standard_outputfilename(row)
         content = row['title'] + row['body']
@@ -310,19 +306,12 @@ def write_corpus_nested(df, cleandatapath, directoryname="corpus-nested"):
         f.write(content)
         f.close()
 
-def clean_unsafe(df):
+def clean_sgml(df):
     """
     Cleans markup that could be unsafe in sgml
     """
-    # Replace ampersands with safe replacements
-    clean_amp = lambda x: (re.sub(r'&', '&amp;', x))
-    apply_to_titlebody(df, clean_amp)
-    # Replace >
-    clean_gt = lambda x: (re.sub(r'>', '&gt;', x))
-    apply_to_titlebody(df, clean_gt)
-    # Replace <
-    clean_lt = lambda x: (re.sub(r'<', '&lt;', x))
-    apply_to_titlebody(df, clean_lt)
+    for field in ['title', 'body']:
+        df[field] = df[field].str.replace("&", "&amp;").str.replace(">", "&gt;").str.replace("<", "&lt;")
     return df
 
 def write_corpus_cqpweb(df, cleandatapath, directoryname="corpus-cqpweb"):
@@ -332,7 +321,7 @@ def write_corpus_cqpweb(df, cleandatapath, directoryname="corpus-cqpweb"):
     outputpath = str(cleandatapath) + "/"
     archive = zipfile.ZipFile(f"{outputpath}{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
     # Cleans markup that could be unsafe in sgml
-    df = clean_unsafe(df)
+    df = clean_sgml(df)
     for index, row in df.iterrows():
         outputfilename = standard_outputfilename(row)
         cqpwebtags = '<text id="' + row['text_id'] + '">\n'
@@ -359,8 +348,8 @@ def write_corpus_sketchengine(df, cleandatapath, directoryname="corpus-sketcheng
     Writes our corpus with title and body, with tags in the format accepted by sketch engine
     '''
     # Cleans markup that could be unsafe in sgml
-    archive = zipfile.ZipFile(f"{cleandatapath}/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
-    df = clean_unsafe(df)
+    archive = zipfile.ZipFile(f"{str(cleandatapath)}/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
+    df = clean_sgml(df)
     for index, row in df.iterrows():
         outputfilename = standard_outputfilename(row)
         sketchenginetags = '<doc date="' + row['date'].strftime("%Y-%m-%d") + '" publication="' + row['source'] + '" wordcountTotal="' + str(row['wordcount_total']) + '">'

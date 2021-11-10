@@ -27,7 +27,7 @@ def count_words(df):
     '''
     vectorizer = CountVectorizer(token_pattern=r"(?u)\b\w+\b")
     corpustokencounts = vectorizer.fit_transform(df['text'].values)
-    wordcountdf = pd.DataFrame(data=np.transpose(corpustokencounts.toarray()), columns=df.source.unique().tolist())
+    wordcountdf = pd.DataFrame(data=np.transpose(corpustokencounts.toarray()), columns=df.source.tolist())
     wordcountdf['word'] = vectorizer.get_feature_names()
     return wordcountdf
 
@@ -49,7 +49,7 @@ def single_source_ln(source_wc, expected_wc_source):
         # unlike the excel spreadsheet put the 2x multiplication here
         return 2 * source_wc * np.log(source_wc/expected_wc_source)
 
-def get_percent_diff(normalised_wc_source, normalised_restofcorpus_wc,diff_zero_freq_adjustment):
+def get_percent_diff(normalised_wc_source, normalised_restofcorpus_wc, diff_zero_freq_adjustment):
     if normalised_restofcorpus_wc == 0:
         divideby = diff_zero_freq_adjustment
     else:
@@ -90,28 +90,31 @@ def two_corpus_compare(df, total_by_source, total_words_in_corpus):
     diff_zero_freq_adjustment = 1E-18
 
     for source in sources:
+        # TODO Ideally you'd do this with apply for each source, and then merge the tables together adding a "_{source}" 
+        # #suffix to each column name. All of the "_"+source in this code get in the way of its readability. 
+        # It makes it uncomfortable for me to try check correctness.
         wc_restofcorpus = total_words_in_corpus - total_by_source[source]
-        outdf[str('expected_wc_'+source)] = total_by_source[source] * outdf['total_word_used']/ total_words_in_corpus
-        outdf[str('expected_restofcorpus_wc_'+source)] = wc_restofcorpus * outdf['total_word_used']/total_words_in_corpus
-        outdf[str('normalised_wc_'+source)] = outdf[source]/total_by_source[source]
-        outdf[str('normalised_restofcorpus_wc_'+source)] = (outdf['total_word_used'] - outdf[source])/wc_restofcorpus
-        outdf[str('overuse_'+source)] = outdf[str('normalised_wc_'+source)] > outdf[str('normalised_restofcorpus_wc_'+source)]
+        outdf['expected_wc_'+source] = total_by_source[source] * outdf['total_word_used']/ total_words_in_corpus
+        outdf['expected_restofcorpus_wc_'+source] = wc_restofcorpus * outdf['total_word_used']/total_words_in_corpus
+        outdf['normalised_wc_'+source] = outdf[source]/total_by_source[source]
+        outdf['normalised_restofcorpus_wc_'+source] = (outdf['total_word_used'] - outdf[source])/wc_restofcorpus
+        outdf['overuse_'+source] = outdf['normalised_wc_'+source] > outdf['normalised_restofcorpus_wc_'+source]
         # log-likelihood calculation per-corpus vs rest of corpus
-        tmparray = outdf.apply(lambda x: single_source_ln(x[source], x[str('expected_wc_' + source)]), axis=1).array
-        tmparray += outdf.apply(lambda x: single_source_ln((x['total_word_used'] - x[source]), x[str('expected_restofcorpus_wc_' + source)]), axis=1).array
-        outdf[str('log_likelihood_'+source)] = tmparray
-        outdf[str('percent_diff_'+source)] = outdf.apply(lambda x: get_percent_diff(x[str('normalised_wc_'+source)],x[str('normalised_restofcorpus_wc_'+source)], diff_zero_freq_adjustment), axis=1)
-        outdf['bayes_factor_bic_'+source] = outdf[str('log_likelihood_'+source)] - (degrees_of_freedom * np.log(total_words_in_corpus))
-        outdf['ell_'+source] = outdf[str('log_likelihood_'+source)]/(total_words_in_corpus * np.log(outdf.filter(regex=str('expected.*' + source )).min(axis=1)))
-        outdf['relative_risk_'+source] = outdf.apply(lambda x: relative_risk(x[str('normalised_wc_'+source)], x[str('normalised_restofcorpus_wc_'+source)]), axis=1)
-        outdf['log_ratio_' + source] = outdf.apply(lambda x: log2_ratio(x[str('normalised_wc_'+source)], x[str('normalised_restofcorpus_wc_'+source)], total_by_source[source], wc_restofcorpus), axis=1)
+        tmparray = outdf.apply(lambda x: single_source_ln(x[source], x['expected_wc_' + source]), axis=1).array
+        tmparray += outdf.apply(lambda x: single_source_ln((x['total_word_used'] - x[source]), x['expected_restofcorpus_wc_' + source]), axis=1).array
+        outdf['log_likelihood_'+source] = tmparray
+        outdf['percent_diff_'+source] = outdf.apply(lambda x: get_percent_diff(x['normalised_wc_'+source],x['normalised_restofcorpus_wc_'+source], diff_zero_freq_adjustment), axis=1)
+        outdf['bayes_factor_bic_'+source] = outdf['log_likelihood_'+source] - (degrees_of_freedom * np.log(total_words_in_corpus))
+        outdf['ell_'+source] = outdf['log_likelihood_'+source]/(total_words_in_corpus * np.log(outdf.filter(regex=str('expected.*' + source )).min(axis=1)))
+        outdf['relative_risk_'+source] = outdf.apply(lambda x: relative_risk(x['normalised_wc_'+source], x['normalised_restofcorpus_wc_'+source]), axis=1)
+        outdf['log_ratio_' + source] = outdf.apply(lambda x: log2_ratio(x['normalised_wc_'+source], x['normalised_restofcorpus_wc_'+source], total_by_source[source], wc_restofcorpus), axis=1)
         outdf['odds_ratio_' + source] = outdf.apply(lambda x: odds_ratio(x[source], (x['total_word_used'] - x[source]), total_by_source[source], wc_restofcorpus), axis=1)
     return outdf
 
 
 def test_twocorpus_compare(projectroot):
     # test file has raw data and results
-    test2 = pd.read_csv(str(projectroot) + "/100_data_raw/211008_SigEff_2test.csv")
+    test2 = pd.read_csv(projectroot/"100_data_raw"/"211008_SigEff_2test.csv")
     # keep only word counts and the word in there
     test2_wc_only = test2[test2.columns[pd.Series(test2.columns).str.startswith('corpus')]].copy()
     test2_wc_only['word'] = test2['word']
@@ -149,7 +152,7 @@ def n_corpus_compare(df, total_by_source, total_words_in_corpus):
 
 def test_multicorpus_compare(projectroot):
     # test file has raw data and results
-    test6 = pd.read_csv(str(projectroot) + "/100_data_raw/211008_SigEff_6test.csv")
+    test6 = pd.read_csv(projectroot/"100_data_raw"/"211008_SigEff_6test.csv")
     # keep only word counts and the word in there
     test6_wc_only = test6[test6.columns[pd.Series(test6.columns).str.startswith('corpus')]].copy()
     test6_wc_only['word'] = test6['word']
