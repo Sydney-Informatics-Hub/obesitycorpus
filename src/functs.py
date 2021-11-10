@@ -1,20 +1,39 @@
 import datetime
 import os
 import re
-import unicodedata
-import zipfile
-
-import dateparser
+import spacy
+from spacy.tokens import Span
 import pandas as pd
+import numpy as np
+import zipfile
+import dateparser
 from bs4 import UnicodeDammit
 from unidecode import unidecode
-
+import unicodedata
 
 def obesitylist(*args):
-    mylist = ['obesity', 'obese', "obesogenic", "obesogen"]
+    # nb: obesogen will also pick up obesogenic
+    mylist = ["obesity","obesity's", "obese", "obesogen"]
     for x in args:
         mylist.append(x)
     return mylist
+
+def abbreviate_source(source):
+    source_to_abbr = {
+    "HeraldSun": "HS",
+    "SydHerald": "SM",
+    "Advertiser": "AD",
+    "CourierMail": "CM" ,
+    "Age": "AG",
+    "CanTimes": "CT",
+    "Australian": "AU",
+    "WestAus": "WA",
+    "HobMercury": "HM",
+    "Telegraph": "TE",
+    "NorthernT": "NT",
+    "BrisTimes": "BT"
+    }
+    return source.map(source_to_abbr).fillna("Missing")
 
 
 def readfilesin(file_path, encoding):
@@ -46,6 +65,10 @@ def convert_month(month):
     else:
         print("The following month name is not valid: '", month, "'")
 
+def apply_to_titlebody(df, function):
+    df["body"] = df["body"].apply(function)
+    df["title"] = df["title"].apply(function)
+
 def where_is_byline(contentslist):
     tmplist = [x.lower().find('byline') for x in contentslist]
     return [i for i, x in enumerate(tmplist) if x != -1]
@@ -70,16 +93,17 @@ def get_wordcount_from_metadata(contents):
     else:
         return None
 
-
+def standard_outputfilename(row):
+    return f"{row.source}_{row.year}_{row.original_numeric_month}_{row.fourdigitcode}_{make_slug(row.title)}.txt"
 
 def parse_filename(path):
     source, year, month = path.split('/')[2].split("_")
     month = month.replace("txt", "").strip()
-    numeric_month = convert_month(month)
+    original_numeric_month = convert_month(month)
     return pd.Series({
         "source": source,
         "year": year,
-        "numeric_month": numeric_month
+        "original_numeric_month": original_numeric_month
     })
 
 
@@ -114,12 +138,14 @@ def clean_nonascii(body, replacementcsvfile="replacements.csv"):
     cleaned_bodies = unicodedata.normalize("NFKD",ascii_replaced)
     return cleaned_bodies
 
+def strip_newlines(column):
+    column = column.strip("\n")
+    return column
 
-def clean_quotes(column):
+def clean_quotes(mytext):
     '''
     Cleans up quotes in body or title
     '''
-    mytext = column
     # manually checked 3 quotes are used instead of two in the corpus
     mytext = mytext.replace('```', '"')
     # two open quotes
@@ -130,12 +156,17 @@ def clean_quotes(column):
     mytext = mytext.replace("`", "'")
     return mytext
 
+def clean_wa(mytext):
+    # replaces some odd tags in the WA
+    # replacing ";  -----QUOTE----" and ";  -----info box----" detected in the title of some of the WA articles
+    mytext = re.sub(';  -----QUOTE----', '', mytext, flags=re.IGNORECASE)
+    mytext = re.sub(';  -----info box----', '', mytext, flags=re.IGNORECASE)
+    return mytext
 
-def clean_quot(column):
+def clean_quot(mytext):
     '''
     Deals with &quot; strings in body or metadata
     '''
-    mytext = column
     mytext = mytext.replace('&quot;&quot;&quot;', '"')
     mytext = mytext.replace('&quot;&quot;', '"')
     mytext = mytext.replace('&quot;', '"')
@@ -195,10 +226,8 @@ def make_slug(s):
     s = s[:150] if len(s) > 150 else s
     return s
 
-
-# to clean the corpus - cleaning symbols in messy bodies
-
 def mystringreplace(string, replacementobject):
+    # to clean the corpus - cleaning symbols in messy bodies
     if string is None:
         return None
     elif isinstance(replacementobject, list):
@@ -211,35 +240,35 @@ def mystringreplace(string, replacementobject):
         return string
 
 
-def find_problems(start, end, filesdf, colname="cleaned_bodies"):
+def find_problems(start, end, corpusdf, colname="cleaned_bodies"):
     # finding problematic sentences
     matches = [re.findall(r'\w+.[^\x00-\x7F].+', x)
-               for x in filesdf[colname].iloc[start:end].tolist()]
+               for x in corpusdf[colname].iloc[start:end].tolist()]
     return [item
             for sublist in matches
             for item in sublist]
 
 
-def find_specific_character_with_preceding(character, start, end, filesdf, colname="cleaned_bodies"):
+def find_specific_character_with_preceding(character, start, end, corpusdf, colname="cleaned_bodies"):
     # finding a specific character with the preceding characters
     pattern = r'\w+.' + re.escape(character) + '+.*'
-    return [item for sublist in [re.findall(pattern, x) for x in filesdf[colname].tolist()[start:end]] for item in
+    return [item for sublist in [re.findall(pattern, x) for x in corpusdf[colname].tolist()[start:end]] for item in
             sublist]
 
 
-def find_specific_character_wout_preceding(character, start, end, filesdf, colname="cleaned_bodies"):
+def find_specific_character_wout_preceding(character, start, end, corpusdf, colname="cleaned_bodies"):
     # finding a specific character where that character starts a word
     pattern = r'' + re.escape(character) + '+.*'
-    return [item for sublist in [re.findall(pattern, x) for x in filesdf[colname].tolist()[start:end]] for item in
+    return [item for sublist in [re.findall(pattern, x) for x in corpusdf[colname].tolist()[start:end]] for item in
             sublist]
 
 
-def find_filename_from_string(string, filesdf):
-    return filesdf[filesdf['body'].str.contains(string)]['filename'].to_list()
+def find_filename_from_string(string, corpusdf):
+    return corpusdf[corpusdf['body'].str.contains(string)]['filename'].to_list()
 
 
-def display_body_from_string(string, filesdf):
-    return filesdf[filesdf['body'].str.contains(string)]['body'].to_list()
+def display_body_from_string(string, corpusdf):
+    return corpusdf[corpusdf['body'].str.contains(string)]['body'].to_list()
 
 
 def get_date(string):
@@ -257,9 +286,9 @@ def write_corpus_titlebody(df, cleandatapath, directoryname="corpus-titlebody"):
     '''
     Writes our corpus with title and body, without any tags or metadata
     '''
-    archive = zipfile.ZipFile(f"{cleandatapath}/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
+    archive = zipfile.ZipFile(f"{str(cleandatapath)}/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
     for index, row in df.iterrows():
-        outputfilename = f"{row.source}_{row.year}_{row.numeric_month}_{row.fourdigitcode}_{make_slug(row.title)}.txt"
+        outputfilename = standard_outputfilename(row)
         content = row['title'] + row['body']
         archive.writestr(outputfilename, content)
     archive.close()
@@ -269,36 +298,62 @@ def write_corpus_nested(df, cleandatapath, directoryname="corpus-nested"):
     Writes our corpus with title and body, nested by source/year/month
     '''
     for index, row in df.iterrows():
-        outputdir = str(cleandatapath) + "/" + directoryname + f"/{row.source}/{row.year}/{row.numeric_month}/"
-        outputfilename = outputdir +  f"{row.fourdigitcode}_{make_slug(row.title)}.txt"
+        outputdir = str(cleandatapath) + "/" + directoryname + f"/{row.source}/{row.year}/{row.month_metadata}/"
+        outputfilename = outputdir + standard_outputfilename(row)
         os.makedirs(os.path.dirname(outputdir), exist_ok=True)
         content = row['title'] + "\n" + row['body']
         f = open(outputfilename, 'w', encoding='utf-8')
         f.write(content)
         f.close()
 
+def clean_sgml(df):
+    """
+    Cleans markup that could be unsafe in sgml
+    """
+    for field in ['title', 'body']:
+        df[field] = df[field].str.replace("&", "&amp;").str.replace(">", "&gt;").str.replace("<", "&lt;")
+    return df
 
-def cqpweb_metadata(df, cleandatapath, directoryname="corpus-titlebody"):
+def write_corpus_cqpweb(df, cleandatapath, directoryname="corpus-cqpweb"):
     '''
-    Writes our corpus with title and body, without any tags or metadata
+    Writes our corpus and metadata as per CQP web sample format
     '''
-    # ../200_data_clean/
-    outputdf = df.copy()
-    outputdf['slug'] = outputdf['title'].apply(lambda x: make_slug(x))
-    outputdf['outputputfile'] = outputdf[['source', 'year', 'numeric_month', 'fourdigitcode', 'slug']].agg('_'.join, axis=1)
-    outputdf.drop(['filename', 'encoding','confidence','fullpath','fourdigitcode','year','numeric_month','body'], axis=1, inplace=True)
-    outputdf.to_csv(f'{cleandatapath}/{directoryname}_metadata.csv', index=False)
+    outputpath = str(cleandatapath) + "/"
+    archive = zipfile.ZipFile(f"{outputpath}{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
+    # Cleans markup that could be unsafe in sgml
+    df = clean_sgml(df)
+    for index, row in df.iterrows():
+        outputfilename = standard_outputfilename(row)
+        cqpwebtags = '<text id="' + row['text_id'] + '">\n'
+        content = cqpwebtags + '<head>' + row['title'] + '</head>\n<body>\n' + row['body'] + "\n</body>\n</text>\n"
+        archive.writestr(outputfilename, content)
+    archive.close()
+    # create an extra column as per CQP web sample file
+    # use the real date here
+    df['yearmo'] = df.year + df.month_metadata
+    # reorder columns so ones Andrew requires are placed first
+    andrewcols = ['text_id', 'shortcode', 'year', 'month_metadata', 'yearmo', 'rownumber']
+    df = df[ andrewcols + [ col for col in df.columns if col not in andrewcols]]
+    # get rid of the index column & some unnecessary columns
+    df = df.loc[:, ~df.columns.str.match('Unnamed')]
+    df.drop(['filename','confidence','fullpath','fourdigitcode','body'], axis=1, inplace=True)
+    df.to_csv(f'{outputpath}{directoryname}_metadata.csv', index=False)
+    # drop the metadata and encoding columns before going to tsv for cqpweb
+    df.drop(['metadata', 'encoding', 'original_numeric_month'], axis=1, inplace=True)
+    df.to_csv(f'{outputpath}{directoryname}_metadata.tsv', sep='\t', index=False)
 
 
 def write_corpus_sketchengine(df, cleandatapath, directoryname="corpus-sketchengine"):
     '''
     Writes our corpus with title and body, with tags in the format accepted by sketch engine
     '''
-    archive = zipfile.ZipFile(f"{cleandatapath}/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
+    # Cleans markup that could be unsafe in sgml
+    archive = zipfile.ZipFile(f"{str(cleandatapath)}/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
+    df = clean_sgml(df)
     for index, row in df.iterrows():
-        outputfilename = f"{row.source}_{row.year}_{row.numeric_month}_{row.fourdigitcode}_{make_slug(row.title)}.txt"
+        outputfilename = standard_outputfilename(row)
         sketchenginetags = '<doc date="' + row['date'].strftime("%Y-%m-%d") + '" publication="' + row['source'] + '" wordcountTotal="' + str(row['wordcount_total']) + '">'
-        content = row['title'] + "\n" + sketchenginetags + row['body']
+        content = sketchenginetags + "\n<head>" + row['title'] + "</head>\n<body>\n" + row['body'] + "\n</body>\n</doc>"
         archive.writestr(outputfilename, content)
     archive.close()
 
