@@ -35,6 +35,12 @@ def abbreviate_source(source):
     }
     return source.map(source_to_abbr).fillna("Missing")
 
+def get_record_from_corpus_df(corpusdf, source, year, orinummonth, fourdigitcode):
+    '''
+    Returns a key/value dict for each column of the pandas dataframe that matches the filtering
+    '''
+    return corpusdf[(corpusdf['source'] == source) & (corpusdf['year'] == year) & (corpusdf['original_numeric_month'] == orinummonth) & (corpusdf['fourdigitcode'] == fourdigitcode)].to_dict()
+
 
 def readfilesin(file_path, encoding):
     if encoding in ['ascii', 'Windows-1252', 'ISO-8859-1']:
@@ -52,6 +58,28 @@ def readfilesin(file_path, encoding):
         except Exception as e:
             raise ValueError('Can\'t return dictionary from empty or invalid file %s due to %s' % (file_path, e))
     return data.replace("\r", "").replace("\nClassification\n\n\n", "").strip()
+
+def remove_australian_authordeets(body):
+    '''
+    The Australian has extra text at the end of the body
+    deliniated by 1-2 "____" lines
+    ex. \n______________________________\n>> Christen Pears is a personal
+    trainer and pilates instructor in Western Australia.
+    This keeps only everything before the first of these in the corpus
+    '''
+    return body.split('\n______________________________\n', 1)[0]
+
+def clean_couriermail_talktous(bodytext):
+    '''
+    The courier mail provides many lines of
+    contact details at the end of it's talk to us session. Remove these.
+    '''
+    bodytext = bodytext.split('TALK TO US', 1)[0]
+    # remove additional courier mail requests for feedback
+    bodytext = re.sub(r'\nWhat do you think\? Email yournews@thesundaymail.com.au or write to us at GPO Box 130, Brisbane, 4001.', '', bodytext)
+    bodytext = re.sub(r'\nWhat do you think\? Email yournews@thesundaymail .com.au or write to us at GPO Box 130, Brisbane, 4001.', '', bodytext)
+    bodytext = re.sub(r'\nWhat do you think\? Email yournews@thesundaymail.com.au', '', bodytext)
+    return bodytext
 
 def convert_month(month):
     # TODO get this to use pandas.to_datetime is your friend (and dateutil which underlies it).
@@ -207,6 +235,8 @@ def clean_redundant_phrases(bodytext):
     # can times
     bodytext = re.sub(r'\nFollow \w.+ on Twitter and \s+ Facebook\n', ' ', bodytext)
     bodytext = re.sub(r'Follow us on Facebook', ' ', bodytext)
+    # herald sun
+    bodytext = re.sub(r'\nheraldsun.com.au\n', '', bodytext)
     return bodytext
 
 def replace_six_questionmarks(column):

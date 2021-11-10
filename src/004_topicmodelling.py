@@ -1,38 +1,29 @@
-# %% [markdown]
-# ## Topic modelling of the corpus
-
 # %%
 import pathlib
 from utils import get_projectpaths
 (projectroot, rawdatapath, cleandatapath, processeddatapath) = get_projectpaths()
-
 import re
 import numpy as np
 import pandas as pd
 # silence annoying warning
 pd.options.mode.chained_assignment = None  # default='warn'
-
 # Gensim
 import gensim
 import gensim.corpora as corpora
 from gensim.utils import simple_preprocess
 from gensim.models import CoherenceModel
-
 # spacy for lemmatization
 import spacy
 import matplotlib.pyplot as plt
 from pprint import pprint
 #%matplotlib inline
-
 # Plotting tools
 import pyLDAvis
 # may need more from here https://stackoverflow.com/questions/66759852/no-module-named-pyldavis
 import pyLDAvis.gensim_models as gensimvis
-
 # Enable logging for gensim - optional
 import logging
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.ERROR)
-
 import warnings
 warnings.filterwarnings("ignore",category=DeprecationWarning)
 
@@ -42,16 +33,14 @@ from nltk.corpus import stopwords
 stop_words = stopwords.words('english')
 
 
-# %%
-# load data and obesity names
+# %% load data and obesity names
 corpusdf = pd.read_pickle(str(cleandatapath/"corpusdf.pickle"))
 # drop unneccessary columns
 corpusdf = corpusdf.drop(['filename', 'encoding', 'confidence', 'fullpath','year', 'original_numeric_month'], axis=1)
 
 
 
-# %%
-# Convert body to list
+# %% Convert body to list
 bodies = corpusdf.body.values.tolist()
 
 # Remove new line characters
@@ -70,8 +59,7 @@ def sent_to_words(sentences):
 
 bodies_words = list(sent_to_words(bodies))
 
-# %%
-# Build the bigram and trigram models
+# %% Build the bigram and trigram models
 bigram = gensim.models.Phrases(bodies_words, min_count=5, threshold=100)
 trigram = gensim.models.Phrases(bigram[bodies_words], threshold=100)
 
@@ -79,8 +67,7 @@ trigram = gensim.models.Phrases(bigram[bodies_words], threshold=100)
 bigram_mod = gensim.models.phrases.Phraser(bigram)
 trigram_mod = gensim.models.phrases.Phraser(trigram)
 
-# %%
-# Define functions for stopwords, bigrams, trigrams and lemmatization
+# %% Define functions for stopwords, bigrams, trigrams and lemmatization
 def remove_stopwords(texts):
     return [[word for word in simple_preprocess(str(doc)) if word not in stop_words] for doc in texts]
 
@@ -98,8 +85,7 @@ def lemmatization(texts, allowed_postags=['NOUN', 'ADJ', 'VERB', 'ADV']):
         texts_out.append([token.lemma_ for token in doc if token.pos_ in allowed_postags])
     return texts_out
 
-# %%
-# Remove Stop Words
+# %% Remove Stop Words
 bodies_words_nostops = remove_stopwords(bodies_words)
 
 # Form Bigrams
@@ -112,8 +98,7 @@ nlp = spacy.load('en_core_web_sm', disable=['parser', 'ner'])
 # Do lemmatization keeping only noun, adj, vb, adv
 bodies_lemmatized = lemmatization(bodies_words_bigrams, allowed_postags=['NOUN', 'ADJ', 'VERB', 'ADV'])
 
-# %%
-# Create Dictionary
+# %% Create Dictionary
 id2word = corpora.Dictionary(bodies_lemmatized)
 
 # Create Corpus
@@ -122,8 +107,7 @@ texts = bodies_lemmatized
 # Term Document Frequency
 corpus = [id2word.doc2bow(text) for text in texts]
 
-# %%
-# Build LDA model
+# %% Build LDA model
 lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus,
                                             id2word=id2word,
                                             num_topics=20,
@@ -134,14 +118,12 @@ lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus,
                                             alpha='auto',
                                             per_word_topics=True)
 
-# %%
-# Print the Keyword in the 10 topics
+# %% Print the Keyword in the 10 topics
 pprint(lda_model.print_topics())
 doc_lda = lda_model[corpus]
 
 
-# %%
-# Compute Perplexity
+# %% Compute Perplexity
 print('\nPerplexity: ', lda_model.log_perplexity(corpus))  # a measure of how good the model is. lower the better.
 
 # Compute Coherence Score
