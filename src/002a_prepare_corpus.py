@@ -1,14 +1,14 @@
 # %%
 import re
-import shutil
+#import shutil
 from datetime import datetime
 import numpy as np
 import pandas as pd
-from functs import clean_page_splits, clean_redundant_phrases, strip_newlines, apply_to_titlebody, abbreviate_source , obesitylist
+from functs import clean_page_splits, clean_redundant_phrases, strip_newlines, apply_to_titlebody, abbreviate_source 
 from functs import clean_wa
 from functs import get_byline, parse_filename, readfilesin
-from functs import get_text4digitcode, clean_nonascii ,clean_quotes , get_date ,clean_quot, replace_six_questionmarks, get_record_from_corpus_df
-from functs import write_corpus_titlebody, write_corpus_sketchengine, get_wordcount_from_metadata, write_corpus_cqpweb, write_corpus_nested
+from functs import get_text4digitcode, clean_nonascii ,clean_quotes , get_date ,clean_quot, replace_six_questionmarks
+from functs import get_record_from_corpus_df, remove_australian_authordeets
 import pathlib
 from utils import get_projectpaths
 (projectroot, rawdatapath, cleandatapath, processeddatapath) = get_projectpaths()
@@ -43,7 +43,7 @@ corpusdf['contents_split'] = corpusdf['contents'].str.split("\nBody\n")
 # corpusdf['contents_len'] = corpusdf['contents_split'].str.len()
 # take advantage of this:
 corpusdf[['metadata', 'body']] = pd.DataFrame(corpusdf.contents_split.tolist(), index=corpusdf.index)
-corpusdf = corpusdf.drop(columns=['contents_split', 'contents'])
+corpusdf = corpusdf.drop(columns=['contents_split', 'contents', 'fullpath'])
 
 # grab the best pass at the title, and convert all so only the first word is capitalised
 corpusdf = corpusdf.assign(title=corpusdf['metadata'].map(lambda x: x.partition('\n')[0].capitalize()))
@@ -107,29 +107,14 @@ assert years_match
 unmatching_months = corpusdf[pd.to_numeric(corpusdf.original_numeric_month) != corpusdf.date.dt.month]
 unmatching_months.to_csv(projectroot/cleandatapath/"unmatching_months.csv", index=False)
 
-# %%
-# look for articles where the title, byline and date from the metadata match
-# this will have false positives
-dupe_mask = corpusdf.duplicated(['title','source','byline','date'], keep=False)
-possible_dupes = corpusdf.loc[dupe_mask]
-possible_dupes.to_csv(projectroot/cleandatapath/'possible_dupes.csv', index=False)
-
-# %% wordcount
-# extract length from metadata
-corpusdf = corpusdf.assign(wordcount_from_metatata=corpusdf['metadata'].map(lambda x: get_wordcount_from_metadata(x)))
-# Get a basic word count of the body (note: without title)
-corpusdf['wordcount_body'] = corpusdf['body'].str.count(' ') + 1
-corpusdf['wordcount_title'] = corpusdf['title'].str.count(' ') + 1
-corpusdf['wordcount_total'] = corpusdf.loc[:,['wordcount_body','wordcount_title']].sum(axis=1)
-
 # can use the below functions to narrow down issues ---
-# find_problems(start, end, colname = "cleaned_bodies", corpusdf = corpusdf)
-# find_specific_character_with_preceding(character, start, end, colname = "cleaned_bodies", corpusdf = corpusdf)
-# find_specific_character_wout_preceding(character, start, end, colname = "cleaned_bodies", corpusdf = corpusdf)
+# find_problems(start, end, colname = "body", corpusdf = corpusdf)
+# find_specific_character_with_preceding(character, start, end, colname = "body", corpusdf = corpusdf)
+# find_specific_character_wout_preceding(character, start, end, colname = "body", corpusdf = corpusdf)
 # find_filename_from_string(string, corpusdf = corpusdf)
 # print_body_from_string(string, corpusdf = corpusdf)
 
-# %% generate an text_id as per cqpweb specifications/Andrew Hardie email
+# %% generate an article_id as per cqpweb specifications/Andrew Hardie email
 corpusdf['shortcode'] = abbreviate_source(corpusdf["source"])
 # make a padded rownumber column so max is the same as number of articles in the FINAL corpus
 corpusdf['rownumber'] = np.arange(len(corpusdf)).astype(str)
@@ -137,35 +122,12 @@ corpusdf['rownumber'] = corpusdf['rownumber'].str.zfill(5)
 # and a full id for each article - ex GU0801004
 # note using the "real" month from the metadata
 # even if there are dupes the rownumber will keep these still unique
-corpusdf['text_id'] =  corpusdf['shortcode'] + corpusdf['year'].apply(lambda x: x[2:]) + corpusdf['month_metadata'] + corpusdf['rownumber']
+corpusdf['article_id'] =  corpusdf['shortcode'] + corpusdf['year'].apply(lambda x: x[2:]) + corpusdf['month_metadata'] + corpusdf['rownumber']
 
-# %% count how many times words of interest appear in the body and title
-for keyword in obesitylist():
-    for place in ['title', 'body']:
-        corpusdf[str(keyword + "_" + place + "_count")] = corpusdf[place].map(lambda x: x.lower().count(keyword))
-# removing obesity's to prevent double-counting when doing obesity and obesity's
-# obesogenic will also be counted when counting for obesogen
-corpusdf['keywords_sum_body'] = corpusdf.loc[:, corpusdf.columns.str.endswith('_body_count')].sum(1) - corpusdf["obesity's_body_count"]
-corpusdf['keywords_sum_title'] = corpusdf.loc[:, corpusdf.columns.str.endswith('_title_count')].sum(1) - corpusdf["obesity's_title_count"]
-corpusdf['keywords_sum_total'] = corpusdf.keywords_sum_body + corpusdf.keywords_sum_title
-corpusdf['keywords_sum_tara'] = corpusdf["obesity_body_count"] - corpusdf["obesity's_body_count"] + corpusdf["obese_body_count"] + corpusdf["obesity_title_count"] - corpusdf["obesity's_title_count"] + corpusdf["obese_title_count"]
-# boolean as to match the UK corpus keyword count
-corpusdf['obesity_boolean'] = corpusdf['keywords_sum_tara'] >= 3
-corpusdf['regex_count'] = corpusdf["body"].str.count('[Oo][Bb][Ee][Ss]+\w') + corpusdf["title"].str.count('[Oo][Bb][Ee][Ss]+\w')
-
-differing_counts = corpusdf[corpusdf['regex_count'] != corpusdf['keywords_sum_total']]
-differing_counts.to_csv(projectroot/cleandatapath/'differing_counts.csv')
+# remove redundant columns
+corpusdf = corpusdf.drop(columns=['shortcode', 'rownumber', 'filename','rownumber','encoding', 'confidence'])
 
 
-# %% write corpus out as per client's request
-write_corpus_titlebody(df=corpusdf, cleandatapath=cleandatapath, directoryname="corpus-titlebody")
-write_corpus_cqpweb(df=corpusdf, cleandatapath=cleandatapath, directoryname="corpus-cqpweb")
-write_corpus_sketchengine(df=corpusdf, cleandatapath=cleandatapath, directoryname="corpus-sketchengine")
-write_corpus_nested(df=corpusdf, cleandatapath=cleandatapath, directoryname="corpus-nested")
-
-corpusdf.to_pickle(str(cleandatapath / "corpusdf.pickle"))
-
-# copy to cloudstor
-# very fragile local link :(
-shutil.copytree(cleandatapath, '../../../../cloudstor/projects/obesity', dirs_exist_ok=True)
-
+# %% write to processed data folder as this is not the final version
+corpusdf.to_pickle(processeddatapath/'prepared_corpusdf.pickle')
+# %%
