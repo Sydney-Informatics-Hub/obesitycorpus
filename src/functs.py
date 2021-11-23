@@ -10,6 +10,8 @@ import dateparser
 from bs4 import UnicodeDammit
 from unidecode import unidecode
 import unicodedata
+import string
+from nltk.tokenize import RegexpTokenizer
 
 def obesitylist(*args):
     # nb: obesogen will also pick up obesogenic
@@ -18,7 +20,7 @@ def obesitylist(*args):
         mylist.append(x)
     return mylist
 
-def abbreviate_source(source):
+def source_mapping():
     source_to_abbr = {
     "HeraldSun": "HS",
     "SydHerald": "SM",
@@ -33,13 +35,33 @@ def abbreviate_source(source):
     "NorthernT": "NT",
     "BrisTimes": "BT"
     }
+    return source_to_abbr
+
+def abbreviate_source(source):
+    source_to_abbr = source_mapping()
     return source.map(source_to_abbr).fillna("Missing")
+
+def expand_source(shortsource):
+    abbr_to_source = {v: k for k, v in source_mapping().items()}
+    return shortsource.map(abbr_to_source).fillna("Missing")
 
 def get_record_from_corpus_df(corpusdf, source, year, orinummonth, fourdigitcode):
     '''
     Returns a key/value dict for each column of the pandas dataframe that matches the filtering
     '''
     return corpusdf[(corpusdf['source'] == source) & (corpusdf['year'] == year) & (corpusdf['original_numeric_month'] == orinummonth) & (corpusdf['fourdigitcode'] == fourdigitcode)].to_dict()
+
+def get_record_by_article_id(corpusdf, article_id):
+    '''
+    Returns a key/value dict for each column of the pandas dataframe that matches the filtering
+    '''
+    return corpusdf[(corpusdf['article_id'] == article_id)].to_dict('records')
+
+def get_body_from_article_id(corpusdf, article_id):
+    '''
+    Returns a key/value dict for each column of the pandas dataframe that matches the filtering
+    '''
+    return corpusdf[(corpusdf['article_id'] == article_id)]['body'].values[0]
 
 
 def readfilesin(file_path, encoding):
@@ -117,9 +139,23 @@ def get_byline(contents):
 def get_wordcount_from_metadata(contents):
     wordcount_specified = re.search('Length: (\d+) words', contents, re.IGNORECASE)
     if wordcount_specified:
-        return wordcount_specified.group(1)
+        return int(wordcount_specified.group(1))
     else:
         return None
+
+def count_words(text):
+    '''
+    My way of counting words. Gets rid of punctuation and counts numbers.
+    Hyphenated/contracted words are counted as one word.
+    '''
+    # remove punctuation
+    # from "It's my life today 2 - wohoo joy-ya obesity's U.S." to 
+    # Its my life today 2 wohoo joyya obesitys US
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    tokenizer = RegexpTokenizer(r'\w+')
+    tokens = tokenizer.tokenize(text)
+    # 9 for the above string
+    return len(tokens)
 
 def standard_outputfilename(row):
     return f"{row.source}_{row.year}_{row.original_numeric_month}_{row.fourdigitcode}_{make_slug(row.title)}.txt"
@@ -354,7 +390,7 @@ def write_corpus_cqpweb(df, cleandatapath, directoryname="corpus-cqpweb"):
     df = clean_sgml(df)
     for index, row in df.iterrows():
         outputfilename = standard_outputfilename(row)
-        cqpwebtags = '<text id="' + row['text_id'] + '">\n'
+        cqpwebtags = '<text id="' + row['article_id'] + '">\n'
         content = cqpwebtags + '<head>' + row['title'] + '</head>\n<body>\n' + row['body'] + "\n</body>\n</text>\n"
         archive.writestr(outputfilename, content)
     archive.close()
@@ -362,11 +398,11 @@ def write_corpus_cqpweb(df, cleandatapath, directoryname="corpus-cqpweb"):
     # use the real date here
     df['yearmo'] = df.year + df.month_metadata
     # reorder columns so ones Andrew requires are placed first
-    andrewcols = ['text_id', 'shortcode', 'year', 'month_metadata', 'yearmo', 'rownumber']
+    andrewcols = ['article_id', 'shortcode', 'year', 'month_metadata', 'yearmo', 'rownumber']
     df = df[ andrewcols + [ col for col in df.columns if col not in andrewcols]]
     # get rid of the index column & some unnecessary columns
     df = df.loc[:, ~df.columns.str.match('Unnamed')]
-    df.drop(['filename','confidence','fullpath','fourdigitcode','body'], axis=1, inplace=True)
+    df.drop(['filename','fourdigitcode','body'], axis=1, inplace=True)
     df.to_csv(f'{outputpath}{directoryname}_metadata.csv', index=False)
     # drop the metadata and encoding columns before going to tsv for cqpweb
     df.drop(['metadata', 'encoding', 'original_numeric_month'], axis=1, inplace=True)
@@ -387,6 +423,11 @@ def write_corpus_sketchengine(df, cleandatapath, directoryname="corpus-sketcheng
         archive.writestr(outputfilename, content)
     archive.close()
 
+def write_corpus_summary_tables(corpusdf, cleandatapath, articlecounts_name="articlecounts", wordcounts_name="wordcounts"):
+    # generate summary of number of articles by source per year
+    corpusdf.groupby(['source', 'year']).agg({ 'article_id':'count'}).unstack().fillna(0).to_csv(cleandatapath/f'corpus_{articlecounts_name}.csv')
+    # generate summaries of word counts by corpus
+    corpusdf.groupby(['source', 'year']).agg({ 'wordcount_total':'sum'}).unstack().fillna(0).to_csv(cleandatapath/f'corpus_{wordcounts_name}.csv')
 
 # Related to SPACY ------------------
 
