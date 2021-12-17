@@ -5,7 +5,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 from functs import clean_page_splits, clean_redundant_phrases, strip_newlines, apply_to_titlebody, abbreviate_source 
-from functs import clean_wa
+from functs import clean_wa, replace_triple_quote
 from functs import get_byline, parse_filename, readfilesin
 from functs import get_text4digitcode, clean_nonascii ,clean_quotes , get_date ,clean_quot, replace_six_questionmarks
 from functs import get_record_from_corpus_df, remove_australian_authordeets
@@ -77,6 +77,8 @@ apply_to_titlebody(corpusdf, clean_quotes)
 apply_to_titlebody(corpusdf, clean_quot)
 # and replace six ?????? specifically with double quotes...
 corpusdf["body"] = corpusdf["body"].apply(replace_six_questionmarks)
+# and replace triple quotes in titles
+corpusdf['title'] = corpusdf['title'].apply(replace_triple_quote)
 # and replace multiple dashes with just one
 corpusdf["body"] = corpusdf["body"].apply(lambda x: (re.sub(r'-+', '-', x)))
 # replace some odd Western Australia quote/text box, observed in the titles
@@ -85,7 +87,10 @@ apply_to_titlebody(corpusdf, clean_wa)
 corpusdf["body"] = corpusdf["body"].apply(clean_page_splits)
 corpusdf["body"] = corpusdf["body"].apply(clean_redundant_phrases)
 # clean publication-specific issues
-corpusdf["body"] = corpusdf["body"].apply(remove_australian_authordeets)
+
+#%%
+# this was not used, as could remove meaningful text as well
+# corpusdf["body"] = corpusdf["body"].apply(remove_australian_authordeets)
 
 # %% get dates
 corpusdf['date'] = corpusdf["metadata"].apply(get_date)
@@ -125,9 +130,14 @@ corpusdf['rownumber'] = corpusdf['rownumber'].str.zfill(5)
 corpusdf['article_id'] =  corpusdf['shortcode'] + corpusdf['year'].apply(lambda x: x[2:]) + corpusdf['month_metadata'] + corpusdf['rownumber']
 
 # remove redundant columns
-corpusdf = corpusdf.drop(columns=['shortcode', 'rownumber', 'filename','rownumber','encoding', 'confidence'])
+corpusdf = corpusdf.drop(columns=['filename','encoding', 'confidence'])
+
+# remove crossword puzzles
+print("The total number of crossword puzzles was ", len(corpusdf[corpusdf.body.str.contains('^ACROSS\n|^Across\n|^ACROSS \n|^Across \n') ]))
+corpusdf = corpusdf[~corpusdf.body.str.contains('^ACROSS\n|^Across\n|^ACROSS \n|^Across \n') ]
 
 
 # %% write to processed data folder as this is not the final version
 corpusdf.to_pickle(processeddatapath/'prepared_corpusdf.pickle')
+print("The total number of rows in the corpus is ",  corpusdf.shape[0])
 # %%

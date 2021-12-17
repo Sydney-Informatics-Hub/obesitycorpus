@@ -15,7 +15,7 @@ from utils import get_projectpaths
 
 
 # %% corpusdf must have title, body and source columns
-corpusdf = pd.read_pickle(cleandatapath/"corpusdf.pickle")
+corpusdf = pd.read_pickle(processeddatapath/"corpusdf_deduped_by_source.pickle")
 corpusdf_forcounting = collapse_corpus_by_source(df=corpusdf)
 wordcountdf = count_words(df=corpusdf_forcounting)
 
@@ -35,8 +35,8 @@ test_multicorpus_compare(projectroot=projectroot)
 multicorp_comparison = n_corpus_compare(df=wordcountdf, total_by_source=total_by_source, total_words_in_corpus=total_words_in_corpus)
 
 # %% Export to csv
-pairwise_compare.to_csv(str(processeddatapath/"pairwise_comparisons.csv"), index=False)
-multicorp_comparison.to_csv(str(processeddatapath/"multicorp_comparison.csv"), index=False)
+pairwise_compare.to_csv(str(cleandatapath/"pairwise_comparisons.csv"), index=False)
+multicorp_comparison.to_csv(str(cleandatapath/"multicorp_comparison.csv"), index=False)
 
 # %% Compare by publisher
 mastheads = pd.read_csv(str(projectroot) + "/100_data_raw/MastheadOwners.csv")
@@ -59,4 +59,4 @@ mastheads_wordcount, total_by_masthead, total_words_in_corpus2 = get_totals(df=m
 # compare mastheads vs rest
 pairwise_compare_masthead = two_corpus_compare(mastheads_wordcount, total_by_masthead, total_words_in_corpus2)
 # %% export to csv
-pairwise_compare_masthead.to_csv(str(processeddatapath/"pairwise_compare_masthead.csv"), index=False)
+pairwise_compare_masthead.to_csv(str(cleandatapath/"pairwise_compare_masthead.csv"), index=False)

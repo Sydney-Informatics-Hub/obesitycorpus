@@ -19,3 +19,5 @@ src/mallet-2.0.8.zip
 ~*
 
 src/diff2HtmlCompare
+
+src/.ipynb_checkpoints/

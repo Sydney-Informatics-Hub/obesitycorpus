@@ -5,7 +5,7 @@ from utils import get_projectpaths
 (projectroot, rawdatapath, cleandatapath, processeddatapath) = get_projectpaths()
 
 # %%
-with open(str(cleandatapath/'duplicatesinfiles.txt')) as f:
+with open(str(processeddatapath/'duplicatesinfiles_fdupes.txt')) as f:
     i=0
     mylist = []
     numlist = []
@@ -32,4 +32,4 @@ count_dupes = pd.crosstab(tmp["duplicate_id"], tmp["source"])
  .size()
  .reset_index(name='Count')
  .sort_values('Count', ascending=False)
- .to_csv(cleandatapath/"identical_duplicates_fdupes.csv", index=False))
+ .to_csv(processeddatapath/"identical_duplicates_fdupes.csv", index=False))
