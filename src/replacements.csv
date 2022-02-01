@@ -106,10 +106,9 @@ word,replacement,example1,example2,example3,
 '1â"2','.5','Sure there are some startling visual moments but in a bumnumbing performance of 21‚"2 hours (with no interval) they are too few and too far between.','71"2 weeks of hunger striking I must','SMH wierdness - no more'
 'ï-','','four ï- 1/4to 12 at three different schools and a kindergarten','has four children aged four Ôø1/4to 12',''
 '. . .','...','Dr Bruce Reid is one of the greatest people you'll ever meet and I have the utmost faith in him . . . if you put integrity up on the table you put Jobe Watson and Bruce Reid right up there together',,
-'>','&gt;','The majority of adults had sufficient levels of vitamin D (&gt;50 nmol/L)','&gt;&gt;Don Aitkin is a former vice-chancellor of the University of Canberra',''
-'<','&lt;','clear less than signs','foods &lt;3.5 stars',,
-'&amp;','','Syd Herald only','at end of line','9 cases'
-'&','&amp;','replacement as per Monika request',''
+'&gt;','>','The majority of adults had sufficient levels of vitamin D (&gt;50 nmol/L)','&gt;&gt;Don Aitkin is a former vice-chancellor of the University of Canberra',''
+'&lt;','<','clear less than signs','foods &lt;3.5 stars',,
+'&amp;','&','Syd Herald only','at end of line','9 cases'
 '¬†',' ','From corpus metadata extraction replaces space','',''
 '¬†',' ','As above','',''
 '\xa0',' ','Weird issue','',''

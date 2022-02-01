@@ -1,0 +1,19 @@
+name: obesity
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - gensim=4.0.1
+  - spacy=3.0.6
+  - tqdm=4.61.1
+  - pandas=1.2.4
+  - nltk=3.6.2
+  - matplotlib=3.4.3
+  - pip:
+    - en-core-web-sm==3.0.0
+    - numpy==1.20.3
+    - spacy-alignments==0.8.3
+    - spacy-transformers==1.0.3
+    - spacytextblob==3.0.1
+    - tdqm==0.0.1
+    - tokenizers==0.10.3

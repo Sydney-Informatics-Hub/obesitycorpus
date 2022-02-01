@@ -15,3 +15,11 @@ src/.idea/
 src/mallet-2.0.8.zip
 
 .idea/
+
+~*
+
+src/diff2HtmlCompare
+
+src/.ipynb_checkpoints/
+
+docs/CorpusManual_12_23_CB_MB.docx
