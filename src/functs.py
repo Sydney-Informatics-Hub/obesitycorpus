@@ -10,6 +10,9 @@ import dateparser
 from bs4 import UnicodeDammit
 from unidecode import unidecode
 import unicodedata
+import string
+from nltk.tokenize import RegexpTokenizer
+import html
 
 def obesitylist(*args):
     # nb: obesogen will also pick up obesogenic
@@ -18,7 +21,7 @@ def obesitylist(*args):
         mylist.append(x)
     return mylist
 
-def abbreviate_source(source):
+def source_mapping():
     source_to_abbr = {
     "HeraldSun": "HS",
     "SydHerald": "SM",
@@ -33,7 +36,33 @@ def abbreviate_source(source):
     "NorthernT": "NT",
     "BrisTimes": "BT"
     }
+    return source_to_abbr
+
+def abbreviate_source(source):
+    source_to_abbr = source_mapping()
     return source.map(source_to_abbr).fillna("Missing")
+
+def expand_source(shortsource):
+    abbr_to_source = {v: k for k, v in source_mapping().items()}
+    return shortsource.map(abbr_to_source).fillna("Missing")
+
+def get_record_from_corpus_df(corpusdf, source, year, orinummonth, fourdigitcode):
+    '''
+    Returns a key/value dict for each column of the pandas dataframe that matches the filtering
+    '''
+    return corpusdf.query("source == @source and year == @year and original_numeric_month == @orinummonth and fourdigitcode == @fourdigitcode").to_dict()
+
+def get_record_by_article_id(corpusdf, article_id):
+    '''
+    Returns a key/value dict for each column of the pandas dataframe that matches the filtering
+    '''
+    return corpusdf[(corpusdf['article_id'] == article_id)].to_dict('records')
+
+def get_body_from_article_id(corpusdf, article_id):
+    '''
+    Returns a key/value dict for each column of the pandas dataframe that matches the filtering
+    '''
+    return corpusdf[(corpusdf['article_id'] == article_id)]['body'].values[0]
 
 
 def readfilesin(file_path, encoding):
@@ -52,6 +81,32 @@ def readfilesin(file_path, encoding):
         except Exception as e:
             raise ValueError('Can\'t return dictionary from empty or invalid file %s due to %s' % (file_path, e))
     return data.replace("\r", "").replace("\nClassification\n\n\n", "").strip()
+
+def remove_australian_authordeets(body):
+    '''
+    The Australian has extra text at the end of the body
+    deliniated by 1-2 "____" lines
+    ex. \n______________________________\n>> Christen Pears is a personal
+    trainer and pilates instructor in Western Australia.
+    This keeps only everything before the first of these in the corpus
+    '''
+    # actually continues with content
+    if body.split('\n______________________________\n', 1)[1][0:12] == ">> NEXT WEEK":
+        return body
+    else:
+        return body.split('\n______________________________\n', 1)[0]
+
+def clean_couriermail_talktous(bodytext):
+    '''
+    The courier mail provides many lines of
+    contact details at the end of it's talk to us session. Remove these.
+    '''
+    bodytext = bodytext.split('TALK TO US', 1)[0]
+    # remove additional courier mail requests for feedback
+    bodytext = re.sub(r'\nWhat do you think\? Email yournews@thesundaymail.com.au or write to us at GPO Box 130, Brisbane, 4001.', '', bodytext)
+    bodytext = re.sub(r'\nWhat do you think\? Email yournews@thesundaymail .com.au or write to us at GPO Box 130, Brisbane, 4001.', '', bodytext)
+    bodytext = re.sub(r'\nWhat do you think\? Email yournews@thesundaymail.com.au', '', bodytext)
+    return bodytext
 
 def convert_month(month):
     # TODO get this to use pandas.to_datetime is your friend (and dateutil which underlies it).
@@ -89,9 +144,29 @@ def get_byline(contents):
 def get_wordcount_from_metadata(contents):
     wordcount_specified = re.search('Length: (\d+) words', contents, re.IGNORECASE)
     if wordcount_specified:
-        return wordcount_specified.group(1)
+        return int(wordcount_specified.group(1))
     else:
         return None
+
+def count_words(text):
+    '''
+    My way of counting words. Gets rid of punctuation and counts numbers.
+    Hyphenated/contracted words are counted as one word.
+    '''
+    # remove punctuation
+    # from "It's my life today 2 - wohoo joy-ya obesity's U.S." to 
+    # Its my life today 2 wohoo joyya obesitys US
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    tokenizer = RegexpTokenizer(r'\w+')
+    tokens = tokenizer.tokenize(text)
+    # 9 for the above string
+    return len(tokens)
+
+def sum_all_keywords(text, keywordslist):
+    sum = 0
+    for keyword in keywordslist:
+        sum += text.lower().count(keyword)
+    return sum
 
 def standard_outputfilename(row):
     return f"{row.source}_{row.year}_{row.original_numeric_month}_{row.fourdigitcode}_{make_slug(row.title)}.txt"
@@ -124,7 +199,8 @@ def clean_nonascii(body, replacementcsvfile="replacements.csv"):
     '''
     # load in replacement dictionary
     replacementdictionary = {"Â\xad": "' ", "~\xad": "-", "\\xE2Ä(tm)": "'", "\\xE2Äú": "\"", \
-                             "\\xE2Ä\"": "-", "\xE2Äò": "\"", "\\xE2€(tm)": "'", "\\xE2€": "'"}
+                             "\\xE2Ä\"": "-", "\xE2Äò": "\"", "\\xE2€(tm)": "'", "\\xE2€": "'", 
+                             "x{2002}":" "}
     replacementdictionary.update(pd.read_csv(replacementcsvfile, quotechar="'", escapechar="\\", \
                                              keep_default_na=False).set_index('word')['replacement'].to_dict())
     # clean using that
@@ -207,6 +283,8 @@ def clean_redundant_phrases(bodytext):
     # can times
     bodytext = re.sub(r'\nFollow \w.+ on Twitter and \s+ Facebook\n', ' ', bodytext)
     bodytext = re.sub(r'Follow us on Facebook', ' ', bodytext)
+    # herald sun
+    bodytext = re.sub(r'\nheraldsun.com.au\n', '', bodytext)
     return bodytext
 
 def replace_six_questionmarks(column):
@@ -216,6 +294,15 @@ def replace_six_questionmarks(column):
     # [^?](\?){6}[^?] TODO 
     mytext = re.sub(r'[^?](\?){6}[^?]', '"', column)
     return mytext
+
+def replace_triple_quote(column):
+    '''
+    Replaces """ and "" with "
+    '''
+    mytext = re.sub(r'"""', '"', column)
+    mytext = re.sub(r'""', '"', mytext)
+    return mytext
+    
 
 def make_slug(s):
     # Remove all non-word characters (everything except numbers and letters)
@@ -311,42 +398,63 @@ def clean_sgml(df):
     Cleans markup that could be unsafe in sgml
     """
     for field in ['title', 'body']:
-        df[field] = df[field].str.replace("&", "&amp;").str.replace(">", "&gt;").str.replace("<", "&lt;")
+        df[field] = df[field].apply(lambda x:html.escape(x, quote=False))
     return df
 
-def write_corpus_cqpweb(df, cleandatapath, directoryname="corpus-cqpweb"):
+def remove_quote_fill_none(text):
+    if text is None:
+        return "Unknown"
+    else:
+        return re.sub("'|\"", "", text)
+
+def write_corpus_cqpweb(inputdf, cleandatapath, directoryname="corpus-cqpweb", write_actual_files=True):
     '''
     Writes our corpus and metadata as per CQP web sample format
     '''
+    
+    df = inputdf.copy()
     outputpath = str(cleandatapath) + "/"
-    archive = zipfile.ZipFile(f"{outputpath}{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
+    if write_actual_files:
+        archive = zipfile.ZipFile(f"{outputpath}{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
     # Cleans markup that could be unsafe in sgml
     df = clean_sgml(df)
-    for index, row in df.iterrows():
-        outputfilename = standard_outputfilename(row)
-        cqpwebtags = '<text id="' + row['text_id'] + '">\n'
-        content = cqpwebtags + '<head>' + row['title'] + '</head>\n<body>\n' + row['body'] + "\n</body>\n</text>\n"
-        archive.writestr(outputfilename, content)
-    archive.close()
+    if write_actual_files:
+        for index, row in df.iterrows():
+            outputfilename = standard_outputfilename(row)
+            cqpwebtags = '<text id="' + row['article_id'] + '">\n'
+            content = cqpwebtags + '<head>' + row['title'] + '</head>\n<body>\n' + row['body'] + "\n</body>\n</text>\n"
+            archive.writestr(outputfilename, content)
+        archive.close()
     # create an extra column as per CQP web sample file
     # use the real date here
     df['yearmo'] = df.year + df.month_metadata
     # reorder columns so ones Andrew requires are placed first
-    andrewcols = ['text_id', 'shortcode', 'year', 'month_metadata', 'yearmo', 'rownumber']
+    andrewcols = ['article_id', 'shortcode', 'year', 'month_metadata', 'yearmo', 'rownumber']
     df = df[ andrewcols + [ col for col in df.columns if col not in andrewcols]]
     # get rid of the index column & some unnecessary columns
     df = df.loc[:, ~df.columns.str.match('Unnamed')]
-    df.drop(['filename','confidence','fullpath','fourdigitcode','body'], axis=1, inplace=True)
+    df.drop(['fourdigitcode','body', 'hash', 'matched_list', 'jaccards'], axis=1, inplace=True)
     df.to_csv(f'{outputpath}{directoryname}_metadata.csv', index=False)
-    # drop the metadata and encoding columns before going to tsv for cqpweb
-    df.drop(['metadata', 'encoding', 'original_numeric_month'], axis=1, inplace=True)
-    df.to_csv(f'{outputpath}{directoryname}_metadata.tsv', sep='\t', index=False)
+    # replace all of the single and double quotes to enable cqpweb import
+    df['byline'] = df.apply(lambda x: remove_quote_fill_none(x.byline), axis = 1)
+    # drop a large number of unsupported columns before going to tsv for cqpweb
+    df.drop(
+        ['metadata', 'original_numeric_month', 'title','shortcode', 'rownumber', 'percent_contribution', 'first_sent'],
+        axis=1, inplace=True)
+    df.drop(list(df.filter(regex = 'count')), axis = 1, inplace = True)
+    df.drop(list(df.filter(regex = 'keywords')), axis = 1, inplace = True)
+    # cqpweb can't handle dashes so replacing with underscores
+    df = df.replace('-','_', regex=True)
+    df['date'] = df.apply(lambda x: x.date.strftime("%Y_%m_%d"), axis=1)
+    if write_actual_files:
+        df.to_csv(f'{outputpath}{directoryname}_metadata.tsv', sep='\t', index=False)
 
 
-def write_corpus_sketchengine(df, cleandatapath, directoryname="corpus-sketchengine"):
+def write_corpus_sketchengine(inputdf, cleandatapath, directoryname="corpus-sketchengine"):
     '''
     Writes our corpus with title and body, with tags in the format accepted by sketch engine
     '''
+    df = inputdf.copy()
     # Cleans markup that could be unsafe in sgml
     archive = zipfile.ZipFile(f"{str(cleandatapath)}/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
     df = clean_sgml(df)
@@ -357,6 +465,11 @@ def write_corpus_sketchengine(df, cleandatapath, directoryname="corpus-sketcheng
         archive.writestr(outputfilename, content)
     archive.close()
 
+def write_corpus_summary_tables(corpusdf, cleandatapath, articlecounts_name="articlecounts", wordcounts_name="wordcounts"):
+    # generate summary of number of articles by source per year
+    corpusdf.groupby(['source', 'year']).agg({ 'article_id':'count'}).unstack().fillna(0).to_csv(cleandatapath/f'{articlecounts_name}.csv')
+    # generate summaries of word counts by corpus
+    corpusdf.groupby(['source', 'year']).agg({ 'wordcount_total':'sum'}).unstack().fillna(0).to_csv(cleandatapath/f'{wordcounts_name}.csv')
 
 # Related to SPACY ------------------
 

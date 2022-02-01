@@ -90,7 +90,7 @@ def two_corpus_compare(df, total_by_source, total_words_in_corpus):
     diff_zero_freq_adjustment = 1E-18
 
     for source in sources:
-        # TODO Ideally you'd do this with apply for each source, and then merge the tables together adding a "_{source}" 
+        # TODO do this with apply for each source, and then merge the tables together adding a "_{source}" 
         # #suffix to each column name. All of the "_"+source in this code get in the way of its readability. 
         # It makes it uncomfortable for me to try check correctness.
         wc_restofcorpus = total_words_in_corpus - total_by_source[source]
