@@ -139,5 +139,7 @@ corpusdf = corpusdf[~corpusdf.body.str.contains('^ACROSS\n|^Across\n|^ACROSS \n|
 
 # %% write to processed data folder as this is not the final version
 corpusdf.to_pickle(processeddatapath/'prepared_corpusdf.pickle')
+corpusdf.to_csv(processeddatapath/'prepared_corpusdf.csv', index=False)
+
 print("The total number of rows in the corpus is ",  corpusdf.shape[0])
 # %%

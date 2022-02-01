@@ -11,21 +11,27 @@ import seaborn as sns
 from diffviz import html_diffs
 import collections
 import nltk
+from nltk import ngrams
 from functs import get_record_by_article_id, expand_source
 from itertools import chain
 import datetime as dt
 
 # %% CLIENT SPECIFIES THESE VARIABLES
 similarity_cutoff = 0.4
+ngramval = 1
 # anything with >= the below cutoff will be dropped from the same source
 dropping_similarity_cutoff = 0.6
-# anything with < ndays days between publication date from metadata will be dropped from the same source
-ndays = 1
+# anything with < max_ndays days between publication date from metadata will be dropped from the same source
+max_ndays = 1
 num_perm = 256
 
 # %% FUNCTION DEFINITION BLOCK ------------------------------------------------
-def make_text_hash(text, num_perm=num_perm):
-    myset = set(tokenize(text))
+def convertTuple(tup):
+    str = ' '.join(tup)
+    return str
+
+def make_text_hash(text, num_perm=num_perm, ngramval=ngramval):
+    myset = set([convertTuple(x) for x in list(ngrams(tokenize(text), ngramval))])
     hash1 = MinHash(num_perm=num_perm)
     for d in myset:
         hash1.update(d.encode('utf8'))
@@ -78,7 +84,7 @@ def plot_hash_similarity_by_source(df, source):
         .duplicated()]) , x="similarity").set_title(source)
     return plot
 
-def get_duplicate_ids(df, sourcematch, similaritycutoff, ndays):
+def get_duplicate_ids(df, sourcematch, min_similarity, max_ndays):
     '''
     sampledata = pd.DataFrame({
     'docid1': ['a'] * 3 + ['b'] * 3 + ['c'] * 3 + ['d'] * 3, 
@@ -91,25 +97,25 @@ def get_duplicate_ids(df, sourcematch, similaritycutoff, ndays):
     drop = get_duplicate_ids(sampledata, sourcematch=True, scorecutoff=1)
     # should return ['a'] when sourcematch=False & ['a', 'c'] when sourcematch=True
     '''
-    df = df[df.similarity >= similaritycutoff]
+    df = df[df.similarity >= min_similarity]
     df['timediff'] = abs(df.date1 - df.date2)
-    df = df[df.timediff < dt.timedelta(days=ndays)]
+    df = df[df.timediff < dt.timedelta(days=max_ndays)]
     df = df[df.wordcount_total1 >= df.wordcount_total2]
     if sourcematch:
         df = df[df.source1 == df.source2]
     list1 = list(df['docid1'].values)
     list2 = list(df['docid2'].values)
     assert len(list1) == len(list2)
-    considered, drop = ([] for i in range(2))
+    considered, drop = set(), []
     for i in range(len(list1)):
         if list1[i] not in considered:
-            considered.append(list1[i])
-            considered.append(list2[i])
+            considered.add(list1[i])
+            considered.add(list2[i])
             # keep.append(list1[i])
             drop.append(list2[i])
         else:
             if list2[i] not in considered:
-                considered.append(list2[i])
+                considered.add(list2[i])
                 drop.append(list2[i])
     drop = sorted(list(set(drop)))
     return drop
@@ -117,12 +123,13 @@ def get_duplicate_ids(df, sourcematch, similaritycutoff, ndays):
 def write_article_diffs(corpusdf, article_kept_id,article_dropped_id, jaccard, outdir):
     x = corpusdf[corpusdf.article_id == article_dropped_id].squeeze()
     y = corpusdf[corpusdf.article_id == article_kept_id].squeeze()
-    title_a = f'Title dropped: {x.title}'
-    title_b = f'Title kept: {y.title}'
-    metadata_a = f'{x.article_id} Jaccard:{jaccard} {x.source} filename: {x.year}-{x.original_numeric_month}-{x.fourdigitcode} metadata: {x.date.date()}'
-    metadata_b = f'{y.article_id} Jaccard:{jaccard} {y.source} filename: {y.year}-{y.original_numeric_month}-{y.fourdigitcode} metadata: {y.date.date()}'
+    title_x = f'Title dropped: {x.title}'
+    title_y = f'Title kept: {y.title}'
+    tpl = '{article_id} Jaccard:{jaccard} {source} filename: {year}-{original_numeric_month}-{fourdigitcode} metadata: {date}'
+    metadata_x = tpl.format(jaccard=jaccard, **x)
+    metadata_y = tpl.format(jaccard=jaccard, **y)
     with open(f'{outdir}/{jaccard}_{article_dropped_id}.html', "w") as f:
-        myhtml = html_diffs(x.body, y.body, title_a, title_b, metadata_a, metadata_b)
+        myhtml = html_diffs(x.body, y.body, title_x, title_y, metadata_x, metadata_y)
         f.write(myhtml)
 
 # %% LOAD DATA BLOCK ---------------------------------------------------------
@@ -194,14 +201,14 @@ plot_hash_similarity_by_source(deduplication_df, source=None);
 drop_source = get_duplicate_ids(
     deduplication_df, 
     sourcematch=True, 
-    similaritycutoff=dropping_similarity_cutoff,
-    ndays=ndays)
+    min_similarity=dropping_similarity_cutoff,
+    max_ndays=max_ndays)
 
 similar_across_sources = get_duplicate_ids(
     deduplication_df, 
     sourcematch=False, 
-    similaritycutoff=dropping_similarity_cutoff,
-    ndays=ndays)
+    min_similarity=dropping_similarity_cutoff,
+    max_ndays=max_ndays)
 
 # %% get different subcorpora
 corpusdf_deduped_by_source = corpusdf[~corpusdf.article_id.isin(drop_source)]
@@ -268,7 +275,7 @@ for_diffs_dropped_corpus_df.apply(lambda x: write_article_diffs(
 # similar_source = set(get_duplicate_ids(
 #     deduplication_df, 
 #     sourcematch=True, 
-#     similaritycutoff=similarity_cutoff)) - set(drop_source)
+#     min_similarity=similarity_cutoff)) - set(drop_source)
 
 # for_diffs_undropped_similar = deduplication_df[
 #     (deduplication_df.source1==deduplication_df.source2) & 

@@ -53,18 +53,24 @@ def sent_to_words(sentences):
 corpusdf = pd.read_csv("corpusdf_deduped_by_source.csv")
 
 # %%
+def replace_patterns(patterns, replacements, bodies):
+    for idx, val in enumerate(patterns):
+        bodies = [re.sub(val, replacements[idx], sent) for sent in bodies]
+    return(bodies)
+    
 # Convert body to list
 bodies = corpusdf.body.values.tolist()
-# Remove new lines
-bodies = [re.sub('\s+', ' ', sent) for sent in bodies]
-# Remove single quotes
-bodies = [re.sub("\'", "", sent) for sent in bodies]
-# Remove double quotes
-bodies = [re.sub('"', "", sent) for sent in bodies]
+# Remove new lines, single and double quotes
+bodies = replace_patterns(
+    patterns = ['\s+','\'','"'],
+    replacements = [' ', '', ''],
+    bodies = bodies
+)
 bodies_words = list(sent_to_words(bodies))
 # Remove Stop Words
 bodies_words_nostops = remove_stopwords(bodies_words)
 
+# %%
 # Initialize spacy 'en' model, keeping only tagger component (for efficiency)
 # python3 -m spacy download en
 nlp = spacy.load('en_core_web_sm', disable=['parser', 'ner'])

@@ -50,7 +50,7 @@ def get_record_from_corpus_df(corpusdf, source, year, orinummonth, fourdigitcode
     '''
     Returns a key/value dict for each column of the pandas dataframe that matches the filtering
     '''
-    return corpusdf[(corpusdf['source'] == source) & (corpusdf['year'] == year) & (corpusdf['original_numeric_month'] == orinummonth) & (corpusdf['fourdigitcode'] == fourdigitcode)].to_dict()
+    return corpusdf.query("source == @source and year == @year and original_numeric_month == @orinummonth and fourdigitcode == @fourdigitcode").to_dict()
 
 def get_record_by_article_id(corpusdf, article_id):
     '''
