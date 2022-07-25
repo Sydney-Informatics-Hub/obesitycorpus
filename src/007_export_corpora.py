@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from functs import write_corpus_summary_tables, get_record_by_article_id
 
-from functs import write_corpus_titlebody, write_corpus_sketchengine,  write_corpus_cqpweb, write_corpus_nested
+from functs import write_corpus_titlebody, write_corpus_sketchengine,  write_corpus_cqpweb, write_corpus_nested, write_corpus_articleid
 import pathlib
 from utils import get_projectpaths
 (projectroot, rawdatapath, cleandatapath, processeddatapath) = get_projectpaths()
@@ -30,6 +30,7 @@ write_corpus_titlebody(df=corpusdf, cleandatapath=cleandatapath, directoryname="
 write_corpus_cqpweb(inputdf=corpusdf, cleandatapath=cleandatapath, directoryname="corpus_cqpweb", write_actual_files=True)
 write_corpus_sketchengine(inputdf=corpusdf, cleandatapath=cleandatapath, directoryname="corpus_sketchengine")
 write_corpus_nested(df=corpusdf, cleandatapath=cleandatapath, directoryname="corpus_nested")
+write_corpus_articleid(df=corpusdf, cleandatapath=cleandatapath, directoryname="corpus_articleid")
 
 # %% 3+ mentions
 write_corpus_titlebody(df=corpusdf_tara, cleandatapath=cleandatapath, directoryname="corpus_titlebody_3plus")

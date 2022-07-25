@@ -376,7 +376,18 @@ def write_corpus_titlebody(df, cleandatapath, directoryname="corpus-titlebody"):
     archive = zipfile.ZipFile(f"{str(cleandatapath)}/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
     for index, row in df.iterrows():
         outputfilename = standard_outputfilename(row)
-        content = row['title'] + row['body']
+        content = row['title'] + "\n" + row['body']
+        archive.writestr(outputfilename, content)
+    archive.close()
+
+def write_corpus_articleid(df, cleandatapath, directoryname="corpus-articleid"):
+    '''
+    Writes our corpus with title and body, without any tags or metadata, with the filename as article_id
+    '''
+    archive = zipfile.ZipFile(f"{str(cleandatapath)}/{directoryname}.zip", "w", zipfile.ZIP_DEFLATED)
+    for index, row in df.iterrows():
+        outputfilename = row['article_id'] + ".txt"
+        content = row['title'] + "\n" + row['body']
         archive.writestr(outputfilename, content)
     archive.close()
 
